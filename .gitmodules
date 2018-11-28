@@ -1,0 +1,3 @@
+[submodule "ipyxact_parser"]
+	path = ipyxact_parser
+	url = https://github.com/Blebowski/ipyxact
