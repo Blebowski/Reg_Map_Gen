@@ -43,7 +43,7 @@ USE IEEE.numeric_std.ALL;
 entity memory_bus_template is
     generic(
         -- Width of Data input
-        constant data_width           :     natural := 32
+        constant data_width           :     natural := 32;
 
         -- Width of Address input
         constant address_width        :     natural := 8  

@@ -79,8 +79,8 @@ end entity address_decoder;
 architecture rtl of address_decoder is
 
     -- Internal one-hot coded signal of address decoder
-    signal addr_dec_i                 :in   std_logic_vector(
-                                                address_entries - 1 downto 0)
+    signal addr_dec_i                 :   std_logic_vector(
+                                                address_entries - 1 downto 0);
     
 begin
 

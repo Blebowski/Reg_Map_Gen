@@ -69,18 +69,15 @@ entity memory_reg is
         ------------------------------------------------------------------------
         -- Address bus
         ------------------------------------------------------------------------
-        signal data_in                :in   std_logic_vector(
-                                                data_width - 1 downto 0);
+        signal data_in                :in   std_logic_vector(data_width - 1 downto 0);
         signal write                  :in   std_logic;
         signal cs                     :in   std_logic;
-        signal w_be                   :in   std_logic_vector(
-                                                data_width / 8 - 1 downto 0);
+        signal w_be                   :in   std_logic_vector(data_width / 8 - 1 downto 0);
 
         ------------------------------------------------------------------------
         -- Register outputs
         ------------------------------------------------------------------------
-        signal reg_value              :out  std_logic_vector(
-                                                data_width - 1 downto 0)
+        signal reg_value              :out  std_logic_vector(data_width - 1 downto 0)
     );
              
 end entity memory_reg;
@@ -100,15 +97,15 @@ begin
     -- Write selector. Takes "write", "byte enable" and creates write select
     -- for each byte!
     ----------------------------------------------------------------------------    
-    for i in 0 to (data_width / 8 - 1) loop
+    wr_sel_gen : for i in 0 to (data_width / 8 - 1) generate
         wr_select(i) <= write and cs and wr_be(i);
-    end loop;
+    end generate wr_sel_gen;
 
 
     ----------------------------------------------------------------------------
     -- Register instance
     ----------------------------------------------------------------------------
-    for i in 0 to data_width - 1 generate
+    bit_gen : for i in 0 to data_width - 1 generate
     
         ------------------------------------------------------------------------
         -- Register implementation itself
@@ -118,13 +115,13 @@ begin
             reg_access_proc : process(clk_sys, res_n)
             begin
                 if (res_n = reset_polarity) then
-                    reg_value(i)  <= reset_value(i)
+                    reg_value(i)  <= reset_value(i);
 
                 elsif (rising_edge(clk_sys)) then
 
                     -- Write to the register
                     if (wr_select(i / 8) = '1') then
-                        reg_value(i)  <= data_in(i)
+                        reg_value(i)  <= data_in(i);
 
                     -- Clear the register if autoclear is set and register is
                     -- set
@@ -145,9 +142,7 @@ begin
             reg_value(i)    <=  reset_value(i);
         end generate reg_not_present_gen;
 
-        end if;
-
-    end process;
+    end generate bit_gen;
 
     -- Propagate to the output
     reg_written <= reg_written_r;

@@ -67,11 +67,11 @@ end component address_decoder;
 --------------------------------------------------------------------------------
 -- Data multiplexor
 --------------------------------------------------------------------------------
-entity data_mux is
+component data_mux is
     generic(
-        constant data_out_width        :     natural := 32
-        constant data_in_width         :     natural := 256
-        constant sel_width             :     natural := 8
+        constant data_out_width        :     natural := 32;
+        constant data_in_width         :     natural := 256;
+        constant sel_width             :     natural := 8;
         constant registered_out        :     boolean := false;
         constant reset_polarity        :     std_logic := '0'
     );
@@ -81,7 +81,7 @@ entity data_mux is
         signal data_selector          :in   std_logic_vector(sel_width - 1 downto 0);
         signal data_in                :in   std_logic_vector(data_in_width - 1 downto 0);
         signal data_mask_n            :out  std_logic_vector(data_out_width - 1 downto 0);        
-        signal enable        
+        signal enable                 :in   std_logic;
         signal data_out               :out  std_logic_vector(data_out_width - 1 downto 0)
     );
 

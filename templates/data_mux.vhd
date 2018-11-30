@@ -74,14 +74,14 @@ entity data_mux is
     generic(
 
         -- Width of data output
-        constant data_out_width        :     natural := 32
+        constant data_out_width        :     natural := 32;
 
         -- Width of data input. Must be divisible by "data_out_width"
-        constant data_in_width         :     natural := 256
+        constant data_in_width         :     natural := 256;
 
         -- Width of selector signal
         -- (Number of data inputs given as  2**sel_width - 1)
-        constant sel_width             :     natural := 8
+        constant sel_width             :     natural := 8;
 
         -- Choose betweed registered / non-registered output
         constant registered_out        :     boolean := false;
@@ -115,9 +115,9 @@ entity data_mux is
         signal data_mask_n            :out  std_logic_vector(data_out_width - 1 downto 0);
         
         ------------------------------------------------------------------------
-        -- Enables data propagation to the output (
+        -- Enables data propagation to the output.
         ------------------------------------------------------------------------
-        signal enable
+        signal enable                 :in   std_logic;
         
         ------------------------------------------------------------------------
         -- Output, one-hot coded. In logic 1 for each valid address
@@ -151,7 +151,7 @@ begin
     ---------------------------------------------------------------------------
     -- Conversion to integer
     ---------------------------------------------------------------------------
-    index <= to_integer(unsigned(data_selector))
+    index <= to_integer(unsigned(data_selector));
 
     ---------------------------------------------------------------------------
     -- Data selector saturation, we need to saturate data selector in case
@@ -169,7 +169,7 @@ begin
     -- Data mux -> Row given by index, column given by generic
     ---------------------------------------------------------------------------
     data_mux_gen : for i in 0 to data_width - 1 generate
-        sel_data(i) <= data_in(index_sat * data_width + i)
+        sel_data(i) <= data_in(index_sat * data_width + i);
     end generate data_mux_gen;
 
 

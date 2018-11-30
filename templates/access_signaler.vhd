@@ -133,22 +133,27 @@ begin
 
         -- Registering signalling
         signal_reg_pres_gen : if (acces_reg_cfg(i)) generate
-            if (res_n = reset_polarity) then
-                access_active_reg(i) <= '0';
-            elsif (rising_edge(clk_sys)) then
 
-                ---------------------------------------------------------------
-                -- Mark signalling to a DFF when it is active. Clear when it
-                -- was activated. Thisway DFF won't tick every clock cycle but
-                -- only upon set-clear!
-                ---------------------------------------------------------------
-                if (access_active(i) = '1') then
-                    access_active_reg(i) <= '1';
-                elsif (access_active_reg(i) = '1') then
+            res_sign_proc : process(res_n, clk_sys)
+            begin
+                if (res_n = reset_polarity) then
                     access_active_reg(i) <= '0';
-                end if;
+                elsif (rising_edge(clk_sys)) then
 
-            end if;
+                    -----------------------------------------------------------
+                    -- Mark signalling to a DFF when it is active. Clear when 
+                    -- it was activated. Thisway DFF won't tick every clock 
+                    -- cycle but only upon set-clear!
+                    -----------------------------------------------------------
+                    if (access_active(i) = '1') then
+                        access_active_reg(i) <= '1';
+                    elsif (access_active_reg(i) = '1') then
+                        access_active_reg(i) <= '0';
+                    end if;
+
+                end if;
+            end process res_sign_proc;
+
         end generate signal_reg_pres_gen;
 
         -- Non-registering write signalling
