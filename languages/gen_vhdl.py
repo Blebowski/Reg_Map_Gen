@@ -688,7 +688,10 @@ class VhdlGenerator(LanBaseGenerator):
 			# leave only boundaries, we don't need complicated parsing logic
 			if (decl.upBound.isdigit() and decl.lowBound.isdigit()):
 				decl.bitWidth = eval(decl.upBound + " - " + decl.lowBound + "+ 1")
-			
+
+		elif (decl.type == "std_logic"):
+			decl.bitWidth = 1
+
 		return decl
 
 

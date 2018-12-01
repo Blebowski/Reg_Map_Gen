@@ -451,10 +451,8 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		"""
 		l_be_ind = reg.addressOffset % 4
 		h_be_ind = l_be_ind + int(reg.size / 8) - 1
-		if (reg.size <= 8):
-			be_val = "be({})".format(l_be_ind)
-		else:
-			be_val = "be({} downto {})".format(h_be_ind, l_be_ind)
+
+		be_val = "be({} downto {})".format(h_be_ind, l_be_ind)
 
 		return be_val
 
