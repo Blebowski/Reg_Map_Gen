@@ -173,10 +173,10 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		"""
 		Create declaration of Read data mask signal for Read data multiplexor.
 		"""
-		signDict["data_mask_n"] = LanDeclaration("read_data_mask_n", value = None)
-		signDict["data_mask_n"].type = "std_logic"
-		signDict["data_mask_n"].bitWidth = self.wrdWidthByte
-		signDict["data_mask_n"].specifier = "signal"
+		signDict["read_data_mask_n"] = LanDeclaration("read_data_mask_n", value = None)
+		signDict["read_data_mask_n"].type = "std_logic"
+		signDict["read_data_mask_n"].bitWidth = self.wrdWidthBit
+		signDict["read_data_mask_n"].specifier = "signal"
 
 
 	def create_write_data_int_decl(self, block, signDict):
@@ -185,9 +185,9 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		registers.
 		"""
 		name = block.name + "_out"
-		signDict["data_mask_n"] = LanDeclaration(name + "_i", value = None)
-		signDict["data_mask_n"].type = name + "_t"
-		signDict["data_mask_n"].specifier = "signal"
+		signDict[name + "_i"] = LanDeclaration(name + "_i", value = None)
+		signDict[name + "_i"].type = name + "_t"
+		signDict[name + "_i"].specifier = "signal"
 
 	
 	def create_internal_decls(self, block, signDict):
