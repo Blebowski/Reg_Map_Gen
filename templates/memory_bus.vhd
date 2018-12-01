@@ -46,7 +46,14 @@ entity memory_bus_template is
         constant data_width           :     natural := 32;
 
         -- Width of Address input
-        constant address_width        :     natural := 8  
+        constant address_width        :     natural := 8;
+
+        -- Registered read output. When true, data are returned combinationally
+        -- in the same clock cycle, when false data are one clock delayed
+        constant registered_read      :     boolean := true;
+
+        -- Reset polarity
+        constant reset_polarity       :     std_logic := '0'
     );
     port(
         ------------------------------------------------------------------------

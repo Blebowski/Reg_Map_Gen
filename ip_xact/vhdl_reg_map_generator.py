@@ -62,8 +62,6 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 
 	of_pkg = None
 
-	registered_read = True
-
 	def __init__(self, pyXactComp, memMap, wrdWidth):
 		super().__init__(pyXactComp, memMap, wrdWidth)
 		self.vhdlGen = VhdlGenerator()
@@ -343,7 +341,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		addr_dec.generics["address_entries"].value = self.calc_blk_wrd_count(block)
 		addr_dec.generics["addr_vect"].value = "ADDR_VECT"
 		addr_dec.generics["registered_out"].value = "false"
-		addr_dec.generics["reset_polarity"].value = "reset_polarity"
+		addr_dec.generics["reset_polarity"].value = "reset_polarity".upper()
 
 		# Connect ports
 		addr_dec.ports["clk_sys"].value = "clk_sys"
@@ -454,7 +452,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		"""
 		reg_inst.generics["data_width"].value = reg.size
 		reg_inst.generics["data_mask"].value = self.calc_reg_data_mask(reg)
-		reg_inst.generics["reset_polarity"].value = "reset_polarity"
+		reg_inst.generics["reset_polarity"].value = "reset_polarity".upper()
 		reg_inst.generics["reset_value"].value = self.calc_reg_rstval_mask(reg)
 		reg_inst.generics["auto_clear"].value = self.calc_autoclear_mask(reg)
 
@@ -536,7 +534,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		Fill generics for VHDL access signaller instance from IP-XACT register
 		object.
 		"""
-		signaller_inst.generics["reset_polarity"].value = "reset_polarity"
+		signaller_inst.generics["reset_polarity"].value = "reset_polarity".upper()
 		signaller_inst.generics["data_width"].value = reg.size
 
 		# Read signalling capability
@@ -645,8 +643,8 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		[low_addr, high_addr] = self.calc_blk_wrd_span(block, ["read"])
 		data_mux.generics["data_in_width"].value = (high_addr - low_addr + self.wrdWidthBit) * 8; 
 		data_mux.generics["sel_width"].value = self.calc_addr_width_from_size(block.range)
-		data_mux.generics["registered_out"].value = str(self.registered_read).lower();
-		data_mux.generics["reset_polarity"].value = "reset_polarity"
+		data_mux.generics["registered_out"].value = "registered_read".upper()
+		data_mux.generics["reset_polarity"].value = "reset_polarity".upper()
 
 		# Connect ports
 		data_mux.ports["clk_sys"].value = "clk_sys"
