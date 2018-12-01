@@ -521,7 +521,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		if (reg.isPresent != ""):
 			paramName = self.parameter_lookup(reg.isPresent)
 			self.vhdlGen.create_if_generate(reg.name + "_present_gen_t",
-				paramName, "true", gap=4)
+				paramName.upper(), "true", gap=4)
 
 		# Format register instances and print it
 		self.vhdlGen.format_entity_decl(reg_inst)
@@ -533,7 +533,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 			self.vhdlGen.commit_append_line(1)
 			self.vhdlGen.wr_line("\n")
 			self.vhdlGen.create_if_generate(reg.name + "_present_gen_f",
-				paramName, "false", gap=4)
+				paramName.upper(), "false", gap=4)
 
 			rst_val = self.calc_reg_rstval_mask(reg)
 			self.vhdlGen.create_signal_connection(
@@ -699,6 +699,21 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		self.vhdlGen.wr_line("\n")
 
 
+	def create_reg_cond_generics(self, block, entity):
+		"""
+		Add conditional generic definitions into entity declaration. Parameter
+		"isPresent" of each IP-XACT register is added as generic boolean input.
+		Parameter look-up is performed for each found parameter.
+		"""
+		for reg in block.register:
+			if (reg.isPresent != ""):
+				paramName = self.parameter_lookup(reg.isPresent)
+				entity.generics[paramName] = LanDeclaration(paramName, value = 0)
+				entity.generics[paramName].value = "true"
+				entity.generics[paramName].type = "boolean"
+				entity.generics[paramName].specifier = "constant"
+
+
 	def create_reg_block_template(self, block):
 		"""
 		Load memory bus entity template, add ports for register inputs, outputs.
@@ -713,6 +728,9 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 
 		# Add ports for register values
 		self.create_reg_ports(block, entity.ports)
+
+		# Add generics for conditionally defined components
+		self.create_reg_cond_generics(block, entity)
 
 		# Format entity declarations to look nice
 		self.vhdlGen.format_decls(entity.ports, gap=2, alignLeft=True,
