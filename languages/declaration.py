@@ -93,6 +93,9 @@ class LanDeclaration(metaclass=ABCMeta):
 	upBound = None
 	lowBound = None
 
+	# If semicoln should be added at the end of declaration
+	addSemicoln = True
+
 	# Internal type to distinguish between various formats of declaration
 	# (e.g. enum element declaration has different format than structure
 	#  element declaration)

@@ -281,7 +281,7 @@ class VhdlGenerator(LanBaseGenerator):
         component ports (with direction), generics or signal/constant
         declaration without binding to entity/component.
 		Arguments:
-			decl		Declaration object
+			decl		    Declaration object
 		"""
 		[strType, strVal] = self.format_decl_type_and_val(decl)
 
@@ -293,10 +293,13 @@ class VhdlGenerator(LanBaseGenerator):
 		post = ' :{} {}'.format(dirStr, strType)
 
 		# Distinguish between initialized and non-initialized declarations!
-		if ((decl.value == "") or (decl.value == None)):
-			post = post + ";\n"
-		else:
-			post = post + " := {};\n".format(strVal)
+		if (not((decl.value == "") or (decl.value == None))):
+			post += " := {}".format(strVal)
+
+		# Append semicoln
+		if (decl.addSemicoln):
+			post += ";"
+		post += "\n";
 
 		# Following aligning section is a little nasty thing and one might
 		# wonder how it works... Author does not know either, so this should
@@ -342,7 +345,7 @@ class VhdlGenerator(LanBaseGenerator):
 			decl.wrap = wrap
 
 
-	def write_connection(self, decl, specDir = False, isLast = False):
+	def write_connection(self, decl, specDir = False):
 		"""
 		Create component port or generic connection on VHDL entity.
 		Arguments:
@@ -351,7 +354,7 @@ class VhdlGenerator(LanBaseGenerator):
 				     in VHDL comment   
 		"""
 		portDelim = ""
-		if (not isLast):
+		if (decl.addSemicoln):
 			portDelim = ","
 
 		pref = " {} {} ".format(" " * decl.gap, decl.name)
@@ -408,18 +411,23 @@ class VhdlGenerator(LanBaseGenerator):
 		return True
 
 
-	def write_ports_or_declarations(self, decls, isInstance):
+	def write_ports_or_declarations(self, decl, decls, isInstance):
 		"""
         Writes Dictionary of ports or declarations. 
         Arguments:
-            decl        Declarations List (VhdlCompDeclaration)
+			decl		Declaration object of entity for which 
+            decls       Declarations List (VhdlCompDeclaration)
             isInstance  "True" indicates ports should be written.
         """
 		for (i, key) in enumerate(decls):
-			lastEntry = True if (i == len(decls) - 1) else False
+
+			if (i == len(decls) - 1 and decl.intType != "architecture"):
+				decls[key].addSemicoln = False
+			else:
+				decls[key].addSemicoln = True
+
 			if (isInstance):
-				self.write_connection(decls[key], specDir = True,
-						              isLast = lastEntry)
+				self.write_connection(decls[key], specDir = True)
 			else:
 				self.write_decl(decls[key])
 
@@ -497,7 +505,7 @@ class VhdlGenerator(LanBaseGenerator):
 				self.append_line(gstr + ")" + semicoln + "\n")
 
 			# Write ports or generics
-			self.write_ports_or_declarations(items, decl.isInstance)
+			self.write_ports_or_declarations(decl, items, decl.isInstance)
 
 			# Appending final bracket for entities always, for components
 			# only with ports!

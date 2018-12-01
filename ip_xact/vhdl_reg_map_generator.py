@@ -467,6 +467,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		reg_inst.ports["res_n"].value = "res_n"
 
 		reg_value = (block.name + "_out_i." + reg.name).lower()
+		reg_inst.ports["reg_value"].value = reg_value
 
 		# Calculate data input indices within a memory word
 		l_ind = (reg.addressOffset * 8) % self.wrdWidthBit
@@ -479,7 +480,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 
 		# Calculate byte enable index / indices from position of register within a
 		# memory word.
-		reg_inst.ports["reg_value"].value = self.calc_reg_byte_enable_vector(reg)
+		reg_inst.ports["w_be"].value = self.calc_reg_byte_enable_vector(reg)
 
 
 	def create_reg_instance(self, block, reg):
@@ -658,6 +659,9 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		data_mux.ports["data_in"].value = "read_data_mux_in"
 		data_mux.ports["data_mask_n"].value = "read_data_mask_n"
 		data_mux.ports["data_out"].value = "r_data"
+
+		# Enable data loading
+		data_mux.ports["enable"].value = "'1'";
 
 		self.vhdlGen.write_comment("Read data multiplexor", gap=4)
 		self.vhdlGen.format_entity_decl(data_mux)
