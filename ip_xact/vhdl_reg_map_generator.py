@@ -189,6 +189,17 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		signDict[name + "_i"].type = name + "_t"
 		signDict[name + "_i"].specifier = "signal"
 
+
+	def create_read_mux_ena_int_decl(self, signDict):
+		"""
+		Create declaration for read data multiplexor enable. This allows keeping
+		or clearing read data signal after data were read.
+		"""
+		signDict["read_mux_ena"] = LanDeclaration("read_mux_ena", value = None)
+		signDict["read_mux_ena"].type = "std_logic"
+		signDict["read_mux_ena"].bitWidth = 1
+		signDict["read_mux_ena"].specifier = "signal"
+
 	
 	def create_internal_decls(self, block, signDict):
 		"""
@@ -218,6 +229,9 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		# Create internal signal for output register structure (output values
 		# of writable registers)
 		self.create_write_data_int_decl(block, signDict)
+
+		# Create declaration of read data clear signal
+		self.create_read_mux_ena_int_decl(signDict)
 
 
 	def append_reg_byte_val(self, block, reg, byte_ind, read_wrd):
@@ -659,7 +673,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		data_mux.ports["data_out"].value = "r_data"
 
 		# Enable data loading
-		data_mux.ports["enable"].value = "'1'";
+		data_mux.ports["enable"].value = "read_mux_ena";
 
 		self.vhdlGen.write_comment("Read data multiplexor", gap=4)
 		self.vhdlGen.format_entity_decl(data_mux)
@@ -722,6 +736,40 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		self.vhdlGen.create_signal_connection(dest, src, gap = 4)
 
 
+	def create_read_data_mux_ena(self):
+		"""
+		Create driver for read data multiplexor enable signal. If read data
+		should be cleared after transaction, enable is constantly at logic 1,
+		thus next cycle will data will be cleared, read mux  output flop is
+		permanently enabled. If read data should not be cleared, flop is
+		enabled only by new transaction.
+		"""
+
+		self.vhdlGen.write_comment("Read data multiplexor enable ", gap = 4)
+		
+		# Read data should be kept, enable is driven by read signal which is
+		# active for each read transaction
+		self.vhdlGen.create_if_generate(name="read_data_keep_gen",
+				condition="clear_read_data".upper(), value="false", gap = 4)
+
+		self.vhdlGen.create_signal_connection(result="read_mux_ena", 
+												driver="read", gap=8)
+
+		self.vhdlGen.commit_append_line(1)
+		self.vhdlGen.wr_line("\n")
+
+		# Read data should be cleared, enable is constant 1, thus at next cycle
+		# all byte enables will be zero and all zeroes will propagate on
+		# outputs.
+		self.vhdlGen.create_if_generate(name="read_data_clear_gen",
+				condition="clear_read_data".upper(), value="true", gap = 4)
+
+		self.vhdlGen.create_signal_connection(result="read_mux_ena",
+												driver="'1'", gap=8)
+
+		self.vhdlGen.commit_append_line(1)
+		self.vhdlGen.wr_line("\n")
+
 	def write_reg_block(self, block):
 		"""
         Create register block in VHDL from IP-XACT memory block object.
@@ -761,6 +809,9 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 
 		# Create instance of registers
 		self.create_write_reg_instances(block)
+
+		# Create driver for enable signal for read data multiplexor
+		self.create_read_data_mux_ena()
 
 		# Create Data multiplexor for data reads
 		self.create_read_data_mux_instance(block)

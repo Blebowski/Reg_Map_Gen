@@ -52,6 +52,10 @@ entity memory_bus_template is
         -- in the same clock cycle, when false data are one clock delayed
         constant registered_read      :     boolean := true;
 
+        -- Clear / Keep r_data signal after read. When true, data are cleared.
+        -- When false, data are kept.
+        constant clear_read_data      :     boolean := true;
+
         -- Reset polarity
         constant reset_polarity       :     std_logic := '0'
     );
