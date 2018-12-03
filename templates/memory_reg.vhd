@@ -83,7 +83,7 @@ entity memory_reg is
 end entity memory_reg;
 
 
-architecture rtl of txtBuffer is
+architecture rtl of memory_reg is
 
     -- Register implementation itself!
     signal reg_value            :   std_logic_vector(data_width - 1 downto 0);
