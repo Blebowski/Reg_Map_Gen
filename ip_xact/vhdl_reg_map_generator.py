@@ -331,10 +331,11 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 	def calc_addr_indices(self, block):
 		"""
         Calculates low and high index of address vector necessary for addressing
-        given memory block
+        given memory block. Each word is addressed and LSBs of address to address
+        within a word is truncated.
 		"""
 		addr_lind = self.calc_addr_width_from_size(self.wrdWidthByte)
-		addr_hind = self.calc_addr_width_from_size(block.range) 
+		addr_hind = self.calc_addr_width_from_size(block.range) - 1 
 
 		return [addr_hind, addr_lind]
 
