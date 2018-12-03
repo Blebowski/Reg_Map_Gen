@@ -654,7 +654,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		data_mux.generics["data_out_width"].value = self.wrdWidthBit
 
 		[low_addr, high_addr] = self.calc_blk_wrd_span(block, ["read"])
-		data_mux.generics["data_in_width"].value = (high_addr - low_addr + self.wrdWidthBit) * 8;
+		data_mux.generics["data_in_width"].value = (high_addr - low_addr) * 8;
 
 		data_mux_indices = self.calc_addr_indices(block)
 		data_mux_sel_width = data_mux_indices[0] - data_mux_indices[1] + 1 
