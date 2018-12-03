@@ -689,13 +689,13 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		bus.
 		"""
 		self.vhdlGen.write_comment("Read data mask - Byte enables", gap = 4)
-		self.vhdlGen.wr_line("    read_data_mask_n  <= not (\n")
+		self.vhdlGen.wr_line("    read_data_mask_n  <= \n")
 
 		for byte in range(self.wrdWidthByte - 1, -1, -1):
 			be_byte_str = "      " + "be({}) & ".format(byte) * 7 + "be({})".format(byte)
 			self.vhdlGen.wr_line(be_byte_str)
 			if (byte == 0):
-				self.vhdlGen.wr_line(");\n")
+				self.vhdlGen.wr_line(";\n")
 			else:
 				self.vhdlGen.wr_line(" &\n")
 
