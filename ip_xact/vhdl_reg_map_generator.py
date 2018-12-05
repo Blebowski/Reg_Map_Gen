@@ -165,6 +165,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		signDict["read_data_mux_in"].type = "std_logic"
 
 		[low_addr, high_addr] = self.calc_blk_wrd_span(block, ["read"])
+		high_addr += self.wrdWidthByte
 		signDict["read_data_mux_in"].bitWidth = (high_addr - low_addr) * 8;
 		signDict["read_data_mux_in"].specifier = "signal"
 
@@ -310,6 +311,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		# since highest bits in std_logic_vector correspond to highest
 		# address!
 		[low_addr, high_addr] = self.calc_blk_wrd_span(block, ["read"])
+		high_addr += self.wrdWidthByte
 		for addr in reversed(range(low_addr, high_addr, self.wrdWidthByte)):
 
 			# Create comment with word address
@@ -322,7 +324,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 			self.vhdlGen.wr_line(wrd_value)
 
 			# Append "&" or ";" to the word address
-			if (addr == high_addr - self.wrdWidthByte):
+			if (addr == low_addr):
 				self.vhdlGen.wr_line(";\n")
 			else:
 				self.vhdlGen.wr_line(" &\n")
@@ -656,6 +658,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		data_mux.generics["data_out_width"].value = self.wrdWidthBit
 
 		[low_addr, high_addr] = self.calc_blk_wrd_span(block, ["read"])
+		high_addr += self.wrdWidthByte
 		data_mux.generics["data_in_width"].value = (high_addr - low_addr) * 8;
 
 		data_mux_indices = self.calc_addr_indices(block)
