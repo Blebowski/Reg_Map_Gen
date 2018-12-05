@@ -393,7 +393,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
         # Go through fields and mark each field which is present
 		for field in sorted(reg.field, key=lambda a: a.bitOffset):
 			if (field.bitWidth > 1):
-				for j in range(field.bitOffset, field.bitOffset + field.bitWidth - 1):
+				for j in range(field.bitOffset, field.bitOffset + field.bitWidth):
 					data_mask[j] = "1"
 			else:
 				data_mask[field.bitOffset] = "1"
