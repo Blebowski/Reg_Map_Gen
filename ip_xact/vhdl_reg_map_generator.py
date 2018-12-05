@@ -306,9 +306,11 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		self.vhdlGen.write_comment("Read data driver", gap = 2)
 		self.vhdlGen.wr_line("  read_data_mux_in  <= \n")
 
-		# Check each word in the memory block
+		# Check each word in the memory block, Start from highest address
+		# since highest bits in std_logic_vector correspond to highest
+		# address!
 		[low_addr, high_addr] = self.calc_blk_wrd_span(block, ["read"])
-		for addr in range(low_addr, high_addr, self.wrdWidthByte):
+		for addr in reversed(range(low_addr, high_addr, self.wrdWidthByte)):
 
 			# Create comment with word address
 			self.vhdlGen.write_comment("Adress:" + str(addr), gap=4, small=True)
