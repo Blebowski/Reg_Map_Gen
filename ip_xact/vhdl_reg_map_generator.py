@@ -373,6 +373,8 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 
 		addr_dec.ports["addr_dec"].value = "reg_sel"
 
+		addr_dec.ports["enable"].value = "cs"
+
         # Create instance of a component
 		self.vhdlGen.write_comment("Write address to One-hot decoder", gap = 4)
 		self.vhdlGen.format_entity_decl(addr_dec)
@@ -779,7 +781,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 				condition="clear_read_data".upper(), value="false", gap = 4)
 
 		self.vhdlGen.create_signal_connection(result="read_mux_ena", 
-												driver="read", gap=8)
+												driver="read and cs", gap=8)
 
 		self.vhdlGen.commit_append_line(1)
 		self.vhdlGen.wr_line("\n")
@@ -790,6 +792,12 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		self.vhdlGen.create_if_generate(name="read_data_clear_gen",
 				condition="clear_read_data".upper(), value="true", gap = 4)
 
+		# Note that this approach will clock register value to the data mux
+		# output also when write is executed to this register. We don't
+		# mind this, since register reads has no side effects! Side effects
+		# are implemented via access_signallers and thus choosing the
+		# register value by read data mux even when it is not needed is
+		# sth we don't mind.
 		self.vhdlGen.create_signal_connection(result="read_mux_ena",
 												driver="'1'", gap=8)
 
