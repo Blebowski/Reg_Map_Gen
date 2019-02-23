@@ -114,7 +114,8 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 
 	def calc_addr_vect_value(self, block):
 		"""
-		Calculate address vector value for address decoder for writable registers.
+		Calculate address vector value for address decoder for reach register
+		word.
 		"""
 		vect_val = ""
 		addr_entry_width = self.calc_wrd_address_width(block)
@@ -764,6 +765,60 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		self.vhdlGen.create_signal_connection(dest, src, gap = 4)
 
 
+	def create_psl_cover_point(self, block, reg, acc_type):
+		"""
+		Create PSL cover point for write into a register.
+		"""
+		# Get index of memory word for the register
+		reg_sel_index = self.get_wrd_index(block, reg) - 1
+
+		# Calcuate byte enable indices
+		l_be_ind = reg.addressOffset % 4
+		h_be_ind = l_be_ind + int(reg.size / 8) - 1
+		be_str = "("
+		for i in range(l_be_ind, h_be_ind + 1):
+			be_str += "be({}) = '1'".format(i)
+			if (i != h_be_ind):
+				be_str += " or "
+			else:
+				be_str += ")"
+
+		self.vhdlGen.write_comment(" psl {}_{}_access_cov : cover (".format(
+			reg.name.lower(), acc_type), gap = 4, small=True)
+		self.vhdlGen.write_comment("    cs = '1' and {} = '1' " \
+			"and reg_sel({}) = '1' and ".format(acc_type, reg_sel_index),
+			gap=4, small=True)
+
+		self.vhdlGen.write_comment("    {});".format(be_str), gap=4, small=True)
+		self.vhdlGen.wr_nl()
+
+
+	def create_psl_cover_points(self, block):
+		"""
+		Create PSL cover points to monitor functional coverage within the
+		generated block. Following points are created:
+			1. Write cover point for each writable register.
+			2. Read cover point for each readable register.
+		"""
+		# Add functional coverage comment
+		self.vhdlGen.write_comment("PSL functional coverage", gap = 4)
+		
+		# Specify clock for PSL
+		self.vhdlGen.write_comment(" psl default clock is " \
+			"rising_edge(clk_sys);", gap = 4, small=True)
+
+		# Go through the registers
+		for i,reg in enumerate(sorted(block.register, key=lambda a: a.addressOffset)):
+
+			# Create write psl coverage for every writable register
+			if (self.reg_has_access_type(reg, ["write"])):
+				self.create_psl_cover_point(block, reg, "write");
+
+			# Create read psl coverage for every readable register
+			if (self.reg_has_access_type(reg, ["read"])):
+				self.create_psl_cover_point(block, reg, "read");
+
+
 	def create_read_data_mux_ena(self):
 		"""
 		Create driver for read data multiplexor enable signal. If read data
@@ -855,9 +910,13 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		self.create_read_data_mask_driver()
 
 		# Create connections of internal write register record to output
-		self.create_write_reg_record_driver(block)
+		self.create_write_reg_record_driver(block)	
 		self.vhdlGen.wr_line("\n")
 
+		# Create PSL functional coverage entries
+		self.create_psl_cover_points(block)
+
+		self.vhdlGen.wr_line("\n")
 		self.vhdlGen.commit_append_line(1)
 
 
