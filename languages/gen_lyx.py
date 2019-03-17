@@ -59,7 +59,7 @@ class LyxGenerator(BaseGenerator):
 						"Subsubsection", "Paragraph", "Subparagraph"]
 	supStyles = [stdLayouts, stdLists, stdRefPrefixes]
 	
-	# TODO: Should we do also supported insets?? I dont want to complicate
+	# TODO: Should we also do support of insets?? I dont want to complicate
 	#       it so lets just leave little responisibility on the one who
 	#       is using the generator
 	

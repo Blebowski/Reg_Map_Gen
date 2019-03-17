@@ -312,3 +312,26 @@ class IpXactAddrGenerator(metaclass=ABCMeta):
 						self.calc_addr_width_from_size(self.wrdWidthBit)
 		return addr_width
 
+
+	def calc_reg_rstval_mask(self, reg):
+		"""
+		Calculate mask or reset values for given register. Reset mask contains
+		value of reset after "res_n" input is released.
+		"""
+		# Suppose all registers are reset to zero
+		rst_mask = ["0" for x in range(reg.size)]
+
+		# Go through fields and replace each bit index by a reset value
+		for field in sorted(reg.field, key=lambda a: a.bitOffset):
+			if (field.resets == None):
+				continue;
+			remainder = field.resets.reset.value
+			for j in range(field.bitWidth):
+				if (remainder % 2 == 1):
+					rst_mask[field.bitOffset + j] = "1"				
+				remainder = int(remainder / 2)
+
+		# Reverse the list, since std_logic_vector has opposite order than list!
+		# Concat values and surround by ""
+		return '"' + ''.join(rst_mask[::-1]) + '"'
+

@@ -62,6 +62,9 @@ class VhdlGenerator(LanBaseGenerator):
 	def __wr_line(self, line):
 		super(VhdlGenerator, self).wr_line(line)
 
+	def wr_line(self, line):
+		self.__wr_line(line)
+
 	def is_supported_type(self, type):
 		return super().is_supported_type(type)
 
@@ -209,15 +212,19 @@ class VhdlGenerator(LanBaseGenerator):
 		types. Supports Integer and String Bitwidths.
 			decl		Declaration object
 		"""
-		strType = "std_logic"
+		strType = decl.type
 
 		# If Both bounds are given, use the bounds
 		if (decl.upBound != None and decl.lowBound != None):
-			strType += "_vector({} downto {})".format(decl.upBound, decl.lowBound)
+			if (decl.type == "std_logic"):
+				strType += "_vector"
+			strType += "({} downto {})".format(decl.upBound, decl.lowBound)
 
 		# If only numeric bitWidth is given, use it and go till zero 
 		elif (str(decl.bitWidth).isdigit() and decl.bitWidth > 1):
-			strType += "_vector({} downto 0)".format(decl.bitWidth - 1)
+			if (decl.type == "std_logic"):
+				strType += "_vector"
+			strType += "({} downto 0)".format(decl.bitWidth - 1)
 
 		# If digit is 0 -> nothing is needed we keep std_logic
 		elif (decl.bitWidth == 1):			
@@ -226,7 +233,7 @@ class VhdlGenerator(LanBaseGenerator):
 		# If nothing is specified, we don't know how to format the vector ->
 		# FUCK IT!
 		else:
-			print("ERROR: Impossible to determine std_logic_vector range!!")
+			print("WARNING: No std_logic_vector range! Assuming without range.")
 			
 		return strType
 
@@ -276,7 +283,7 @@ class VhdlGenerator(LanBaseGenerator):
 
 
 	def write_decl(self, decl):
-		""" 
+		"""
 		Create VHDL declaration of simple type. CAN be used for either
         component ports (with direction), generics or signal/constant
         declaration without binding to entity/component.
@@ -289,7 +296,11 @@ class VhdlGenerator(LanBaseGenerator):
 		name_fmt = self.format_decl_name(decl)
 
 		# Declare prefix and postfix, two parts of declaration
-		pref = '  {} {}'.format(decl.specifier, name_fmt)
+		pref_string = ""
+		if (decl.specifier != None):
+			pref_string = decl.specifier
+		pref = '  {} {}'.format(pref_string, name_fmt)
+
 		post = ' :{} {}'.format(dirStr, strType)
 
 		# Distinguish between initialized and non-initialized declarations!
@@ -377,7 +388,7 @@ class VhdlGenerator(LanBaseGenerator):
 		self.__wr_line("package {} is\n".format(name))
 		self.append_line("end package;\n")
 
-	
+
 	def create_structure(self, name, decls, gap=0):
 		""" 
 		Create VHDL record.
@@ -393,7 +404,7 @@ class VhdlGenerator(LanBaseGenerator):
 		return True
 
 
-	def create_enum(self, name, decls):
+	def create_enum(self, name, decls, gap=0):
 		""" 
 		Create VHDL enum.
 		Arguments:
@@ -401,13 +412,14 @@ class VhdlGenerator(LanBaseGenerator):
 		"""
 		if (not decls):
 			return False
-		self.__wr_line("type {} is\n".format(name))
+		self.__wr_line(" " * gap + "type {} is (\n".format(name))
 		for (i,item) in enumerate(decls):
+			self.__wr_line(" " * item.gap + item.name)
 			if (i == len(decls) - 1):
-				self.__wr_line(item.name + '\n')
+				self.__wr_line('\n')
 			else:
-				self.__wr_line(item.name + ',\n')
-		self.__wr_line(");")
+				self.__wr_line(',\n')
+		self.__wr_line(" " * gap + ");")
 		return True
 
 

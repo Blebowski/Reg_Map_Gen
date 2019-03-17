@@ -32,6 +32,7 @@
 ##	Revision history:
 ##		25.01.2018	First implementation
 ##      25.11.2018  Merged Address and field Maps into single map
+##      16.03.2019  Add list of registers within a memory map.
 ##
 ################################################################################
 
@@ -56,6 +57,52 @@ class VhdlAddrGenerator(IpXactAddrGenerator):
 		"""
 		for line in self.vhdlGen.out :
 			self.of.write(line)
+
+
+	def write_cmn_types(self):
+		"""
+		Write common types used for generation of register list.
+		"""
+		self.vhdlGen.write_comment("Common types", gap = 2)
+
+		# Write register type enum
+		reg_type_enum = []
+		reg_type_enum.append(LanDeclaration("reg_none", ""))
+		reg_type_enum.append(LanDeclaration("reg_write_only", ""))
+		reg_type_enum.append(LanDeclaration("reg_read_only", ""))
+		reg_type_enum.append(LanDeclaration("reg_read_write", ""))
+		reg_type_enum.append(LanDeclaration("reg_read_write_once", ""))
+		for enum_elem in reg_type_enum:
+			enum_elem.gap = 4
+
+		self.vhdlGen.create_enum("t_reg_type", reg_type_enum, gap = 2)
+		self.vhdlGen.wr_nl()
+		self.vhdlGen.wr_nl()
+
+		# Write register record
+		reg_addr = LanDeclaration("address", "")
+		reg_addr.type = "std_logic_vector"
+		reg_addr.bitWidth = 12
+		reg_addr.gap = 4
+
+		reg_size = LanDeclaration("size", "")
+		reg_size.type = "integer"
+		reg_size.gap = 4
+
+		reg_type = LanDeclaration("reg_type", "")
+		reg_type.type = "t_reg_type"
+		reg_type.gap = 4
+
+		reset_val = LanDeclaration("reset_val", "")
+		reset_val.type = "std_logic_vector"
+		reset_val.gap = 4
+		reset_val.bitWidth = self.wrdWidthBit
+
+		self.vhdlGen.create_structure("t_reg", \
+			[reg_addr, reg_size, reg_type, reset_val], gap = 2)
+
+		self.vhdlGen.wr_nl()
+		self.vhdlGen.wr_nl()
 
 
 	def write_reg_enums(self, field):
@@ -214,6 +261,63 @@ class VhdlAddrGenerator(IpXactAddrGenerator):
 			self.vhdlGen.write_decl(decl)
 
 
+	def get_padded_rst_mask(self, reg):
+		"""
+		Pad reset value of register with zeroes and fit it into word size.
+		Other bits of the word are 0.
+		"""
+		res_mask_reg = self.calc_reg_rstval_mask(reg).strip('"')
+		upper_pad = self.wrdWidthBit - ((reg.addressOffset % self.wrdWidthByte) * 8 + reg.size)
+		lower_pad = (reg.addressOffset % self.wrdWidthByte) * 8
+		return "0" * upper_pad + res_mask_reg + "0" * lower_pad
+
+
+	def write_addrbl_reg_list(self, addressBlock):
+		"""
+		Write list of registers within an address block.
+		"""
+		self.vhdlGen.wr_nl()
+		self.vhdlGen.write_comment("Register list", gap = 2)
+		
+		# Write register type (declaration does not support array, do it directly)
+		array_str = "  type t_{}_list is array (0 to {}) of t_reg;\n".format(
+						addressBlock.name, len(addressBlock.register) - 1)
+		self.vhdlGen.wr_nl()
+		self.vhdlGen.wr_line(array_str)
+		self.vhdlGen.wr_nl()
+
+		# Write list of registers
+		self.vhdlGen.wr_line("  constant {}_list : t_{}_list :=(\n".format(
+			addressBlock.name, addressBlock.name))
+		self.vhdlGen.wr_nl()
+
+		for i,reg in enumerate(sorted(addressBlock.register, key=lambda a: a.addressOffset)):
+			self.vhdlGen.wr_line("    (address   => {}_ADR,\n".format(reg.name.upper()))
+			self.vhdlGen.wr_line("     size      => {},\n".format(reg.size))
+
+			reg_t_str = "reg_none"
+			if (reg.access == "read-only"):
+				reg_t_str = "reg_read_only"
+
+			elif (reg.access == "write-only"):
+				reg_t_str = "reg_write_only"
+
+			elif (reg.access == "read-write"):
+				reg_t_str = "reg_read_write"
+
+			elif (reg.access == "read-writeOnce"):
+				reg_t_str = "reg_read_write_once"
+
+			self.vhdlGen.wr_line("     reg_type  => {},\n".format(reg_t_str))
+
+			# Calculate reset mask and offset to position of reg
+			self.vhdlGen.wr_line('     reset_val => "{}")'.format(self.get_padded_rst_mask(reg)))
+
+			if (i == len(addressBlock.register) - 1):
+				self.vhdlGen.wr_line("\n  );\n")
+			else:
+				self.vhdlGen.wr_line(",\n")
+
 	def write_mem_map_addr(self):
 		""" 
 		Write addresses and address block head for IP-XACT memory map to
@@ -222,6 +326,7 @@ class VhdlAddrGenerator(IpXactAddrGenerator):
 		for block in self.memMap.addressBlock:
 			self.write_addrbl_head(block)
 			self.write_addrbl_regs(block)
+			self.write_addrbl_reg_list(block)
 			self.vhdlGen.wr_nl()
 
 
@@ -256,6 +361,8 @@ class VhdlAddrGenerator(IpXactAddrGenerator):
 		self.vhdlGen.wr_nl()
 		self.vhdlGen.create_package(name)
 		self.vhdlGen.wr_nl()
+
+		self.write_cmn_types()
 
 		if (self.memMap):
 			self.write_mem_map_addr()
