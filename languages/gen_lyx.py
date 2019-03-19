@@ -62,15 +62,15 @@ class LyxGenerator(BaseGenerator):
 	# TODO: Should we also do support of insets?? I dont want to complicate
 	#       it so lets just leave little responisibility on the one who
 	#       is using the generator
-	
-	
+
+
 	def __init__(self):
 		super().__init__()
 		self.supportedTypes = [""]
 		self.typeSizes = [32, 8, 8, 8, 16, 16, 64, 64, 8, 16, 32, 64]
 		self.commentSign = "#"
-	
-	
+
+
 	def is_supported_layout(self, layout):
 		"""
 		Finds out whether the layout is supported by the basic lyx packages.
@@ -148,8 +148,9 @@ class LyxGenerator(BaseGenerator):
 		Insert Table cell into the into the generator output.
 		Arguments:
 			cell	Cell to insert in format:
-					[cellOptions, cellTextOptions, cellText, cellLabel] where:
-						cellOptions - Dictionary with cell options such as:
+					[cellOptions, cellTextOptions, cellText, cellLabel, cellColor]
+					where:
+					cellOptions - Dictionary with cell options such as:
 									{"alignment":"center", "bottomline":"true"}
 					cellTextOptions	- Text options to for the text in the cell
 					cellText		- Text to be written into the cell
@@ -157,16 +158,27 @@ class LyxGenerator(BaseGenerator):
 									  of the cell. At the moment supported:
 										"label" - creates lyx Label
 										"hyperref" - creates reference
+					cellColor		- Background color of the cell
 		"""
 		self.insert_html_table_tag("cell", cell[0], endTag=True) 
 		self.insert_inset("Text")
 		self.wr_line("\n")
 		self.write_layout_text("Plain Layout", cell[2], textOptions=cell[1],
-						label=cell[3])
+						label=cell[3], color=cell[4])
 		self.wr_line("\n")
 		self.commit_append_line(2)
-		
 
+
+	def insert_new_line_inset_at_char(self, text, char):
+		"""
+		"""
+		if (char in text):
+			beg_ins = "\\begin_inset".__repr__().strip("'")
+			nl_ins_str = "\n{} Newline newline\n\end_inset\n\n".format(beg_ins)
+			return re.sub("\\" + char, nl_ins_str + char, text)
+		else:
+			return text
+			
 
 	def insert_table(self, table):
 		"""
@@ -267,7 +279,25 @@ class LyxGenerator(BaseGenerator):
 		self.commit_append_line(2)
 
 
-	def write_layout_text(self, layoutType, text, textOptions=None, label=None):
+	def insert_color(self, color):
+		"""
+		Insert color inset to a table cell
+		Arguments:
+			color	
+		"""
+		self.insert_inset("ERT")
+		self.wr_line("status open\n")
+		self.insert_layout("Plain Layout")
+		self.wr_line("\\backslash\n")
+		
+		colorStr = "cellcolor{" + color+"}\n"
+		self.wr_line(colorStr)
+
+		self.commit_append_line(2)
+
+
+	def write_layout_text(self, layoutType, text, textOptions=None, label=None,
+							color=None):
 		"""
 		Insert layout type into the generator output and append a simple text.
 		If text options are specified then the text in the layout is printed
@@ -287,6 +317,7 @@ class LyxGenerator(BaseGenerator):
 		self.insert_layout(layoutType)
 		if (textOptions != None):
 			self.insert_text_options(textOptions)
+
 		if (label == "hyperref"):
 			self.insert_ref(text, label)
 		elif (label != None):
@@ -294,6 +325,10 @@ class LyxGenerator(BaseGenerator):
 			self.insert_ref(text, label)
 		else:
 			self.wr_line(text)
+
+		if (color != None):
+			self.insert_color(color)
+
 		self.commit_append_line(1)
 	
 
@@ -309,7 +344,9 @@ class LyxGenerator(BaseGenerator):
 			function.
 		"""
 		tableOptions = []
-		tableOptions.append(["features", {"tabularvalignment" : "middle"}])
+		tableOptions.append(["features", {"islongtable" : "true", \
+							"longtabularalignment" : "center"}])
+
 		for i in range(0, columnCount):
 			tableOptions.append(["column", {"alignment" : "center" ,
 											"valignment" : "top"}])
@@ -346,6 +383,8 @@ class LyxGenerator(BaseGenerator):
 					actCell[0]["bottomline"] = "true"
 				actCell.append({})
 				actCell.append(defCellText)
+				actCell.append(None)
+				# Color
 				actCell.append(None)
 				
 		return tableCells
@@ -489,6 +528,61 @@ class LyxGenerator(BaseGenerator):
 			self.set_cell_text_label(table, cell[0], cell[1], label)
 
 
+	def set_cell_color(self, table, row, column, color):
+		"""
+		Set color in the cell object of a table
+		Arguments:
+			table			Table object as in "insert_table" function.
+			column			Index of the cell column at which to set the option
+			row				Index of the cell row at which to set the option
+			color			Cells whose background color should be set
+		"""
+		table[1][row][column][4] = color
+
+
+	def set_cells_color(self, table, cells, color):
+		"""
+		Set color in the cell object of a table
+		Arguments:
+			table			Table object as in "insert_table" function.
+			cells		    List of cells whose background color should be set
+			color			Color to set
+		"""
+		for cell in cells:
+			self.set_cell_color(table, cell[0], cell[1], color)
+
+
+	def merge_common_fields(self, table, rowIndices, startCol=0, endCol=None):
+		"""
+		TODO
+		"""
+		prevName = ""
+		multiOpts = []
+		if (endCol == None):
+			endCol = len(table[1][0])
+		for i,row in enumerate(table[1]):
+			if (i in rowIndices):
+				highInd = 0
+				lowInd = 32
+				for j,cell in enumerate(row):
+					if (j >= startCol and j <= endCol):
+						multicolumn = (prevName == cell[2])
+						if (multicolumn):
+							mcVal = "2"
+							lowInd = j
+						else:
+							mcVal = "1"
+							highInd = j
+						prevName = cell[2]
+						self.set_cell_option(table, i, j, "multicolumn", 
+							mcVal)
+					
+					# Set the right panel if end is present
+					if (lowInd == len(row) - 1):
+						self.set_cell_option(table, i, highInd,
+								"rightline", "true")
+
+
 	def insert_new_page(self):
 		"""
 		Write new page into the generator output.
@@ -509,9 +603,19 @@ class LyxGenerator(BaseGenerator):
 		"""
 		Write comment to the lyx document
 		"""
-		self.__wr_line('{}# {}'.format("	" * gap, input))		
-		
-			
+		self.__wr_line('{}# {}'.format("	" * gap, input))
 
+
+	def load_lyx_template(self, path):
+		"""
+		Load lyx document template
+		"""
+		template = open(path, 'r')
+		lines = template.readlines()
+		for i,line in enumerate(lines):
+			self.wr_line(line)
+			if (line == "\\begin_body\n"):
+				break
+		self.append_line("\end_document\n")
+		self.append_line("\end_body\n")
 	
-		

@@ -47,7 +47,6 @@ from pyXact_generator.gen_lib import *
 class LyxAddrGenerator(IpXactAddrGenerator):
 
 	lyxGen = None
-	template = None
 
 	genFieldDesc = None
 	genRegions = None
@@ -154,37 +153,7 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 				
 				retVal[i][j].append(fieldName)
 				retVal[i][j].append(fieldRst)	
-		return retVal		
-	
-	
-	def merge_common_fields(self, table, rowIndices, startCol=0, endCol=None):
-		"""
-		"""
-		prevName = ""
-		multiOpts = []
-		if (endCol == None):
-			endCol = len(table[1][0])
-		for i,row in enumerate(table[1]):
-			if (i in rowIndices):
-				highInd = 0
-				lowInd = 32
-				for j,cell in enumerate(row):
-					if (j >= startCol and j <= endCol):
-						multicolumn = (prevName == cell[2])
-						if (multicolumn):
-							mcVal = "2"
-							lowInd = j
-						else:
-							mcVal = "1"
-							highInd = j
-						prevName = cell[2]
-						self.lyxGen.set_cell_option(table, i, j, "multicolumn", 
-							mcVal)
-					
-					# Set the right panel if end is present
-					if (lowInd == len(row) - 1):
-						self.lyxGen.set_cell_option(table, i, highInd,
-								"rightline", "true")
+		return retVal
 			
 
 	def write_reg_field_table(self, reg):
@@ -221,7 +190,7 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 			self.lyxGen.set_cells_object(table, cells, rstVals)
 			
 			# Merge adjacent fields with the same names
-			self.merge_common_fields(table, [1], startCol=1)
+			self.lyxGen.merge_common_fields(table, [1], startCol=1)
 				
 			self.lyxGen.insert_table(table)
 	
@@ -323,7 +292,7 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 		self.lyxGen.set_cells_object(table, cells, text)
 		self.lyxGen.set_cells_text_label(table, cells, ["hyperref" for i in
 											range(0, len(cells))])	
-		
+
 	
 	def write_mem_map_reg_table(self, block):
 		"""
@@ -366,7 +335,7 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 							"0x{:X}".format(4 * math.floor(reg.addressOffset / 4) +
 											 block.baseAddress))				
 		
-		self.merge_common_fields(table, [i for i in range(1, tableLen + 1)],
+		self.lyxGen.merge_common_fields(table, [i for i in range(1, tableLen + 1)],
 									endCol=4)
 				
 		self.lyxGen.insert_table(table)
@@ -411,15 +380,3 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 	def write_reg(self, reg, writeFields, writeRstVal, writeEnums): 
 		pass
 	
-	
-	
-	
-	def load_lyx_template(self, path):
-		self.template = open(path, 'r')
-		lines = self.template.readlines()
-		for i,line in enumerate(lines):
-			self.lyxGen.wr_line(line)
-			if (line == "\\begin_body\n"):
-				break
-		self.lyxGen.append_line("\end_document\n")
-		self.lyxGen.append_line("\end_body\n")

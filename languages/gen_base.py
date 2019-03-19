@@ -53,7 +53,7 @@ class BaseGenerator(metaclass=ABCMeta):
 		self.out = []
 		self.appendText = []
 		self.commentSign = "#"
-	
+
 	
 	def wr_line(self, line):
 		"""
