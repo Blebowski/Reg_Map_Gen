@@ -191,9 +191,13 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 			
 			# Merge adjacent fields with the same names
 			self.lyxGen.merge_common_fields(table, [1], startCol=1)
-				
+		    
+			# Set header colors
+			self.lyxGen.set_cells_color(table, [[0, i] for i in range(9)], "gray")
+			self.lyxGen.set_cells_color(table, [[1, 0], [2, 0]], "cyan")
+
 			self.lyxGen.insert_table(table)
-	
+
 
 	def write_regs(self, block):
 		"""
@@ -263,6 +267,9 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 		self.lyxGen.set_cells_object(table, nameCells, nameVals)
 		self.lyxGen.set_cells_object(table, addrCells, addrVals)
 		self.lyxGen.set_cells_object(table, titleCells, titleVals)
+
+		self.lyxGen.set_cells_color(table, [[0, 0], [0, 1]], "gray")
+
 		self.lyxGen.insert_table(table)
 	
 	
@@ -337,9 +344,12 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 		
 		self.lyxGen.merge_common_fields(table, [i for i in range(1, tableLen + 1)],
 									endCol=4)
-				
-		self.lyxGen.insert_table(table)
-		
+
+		# Set header color
+		self.lyxGen.set_cells_color(table, [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4]], "gray")
+
+
+		self.lyxGen.insert_table(table)		
 
 
 ################################################################################
