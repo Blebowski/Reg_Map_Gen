@@ -402,11 +402,11 @@ class VhdlLyxEntityGenerator():
 		"""
 		"""
 		if (len(self.ent_interface["generics"]) > 0):		
-			self.lyxGen.write_layout_text("Subsection", "Generics")
+			self.lyxGen.write_layout_text("Paragraph", "Generics")
 			self.gen_generics_lyx_table()
 
 		if (len(self.ent_interface["ports"]) > 0):
-			self.lyxGen.write_layout_text("Subsection", "Ports")
+			self.lyxGen.write_layout_text("Paragraph", "Ports")
 			self.gen_ports_lyx_table()
 
 
