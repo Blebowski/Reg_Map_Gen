@@ -525,7 +525,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 
 			rst_val = self.calc_reg_rstval_mask(reg)
 			self.vhdlGen.create_signal_connection(
-				(block.name + "_out." + reg.name).lower(), rst_val, gap = 8)
+				(block.name + "_out_i." + reg.name).lower(), rst_val, gap = 8)
 
 			self.vhdlGen.commit_append_line(1)
 			self.vhdlGen.wr_line("\n")
