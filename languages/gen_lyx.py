@@ -332,7 +332,7 @@ class LyxGenerator(BaseGenerator):
 		self.commit_append_line(1)
 	
 
-	def build_table_options(self, columnCount, rowCount):
+	def build_table_options(self, columnCount, rowCount, longTable=False):
 		"""
 		Creates default table options object with default column alignment
 		set to center of the cell.
@@ -344,8 +344,13 @@ class LyxGenerator(BaseGenerator):
 			function.
 		"""
 		tableOptions = []
-		tableOptions.append(["features", {"islongtable" : "true", \
-							"longtabularalignment" : "center"}])
+
+		optionsDict = {}
+		if (longTable):
+			optionsDict["islongtable"] = "true"
+			optionsDict["longtabularalignment"] = "center"
+		
+		tableOptions.append(["features", optionsDict])
 
 		for i in range(0, columnCount):
 			tableOptions.append(["column", {"alignment" : "center" ,
@@ -390,7 +395,7 @@ class LyxGenerator(BaseGenerator):
 		return tableCells
 				
 	
-	def build_table(self, columnCount, rowCount, defCellText="Reserved"):
+	def build_table(self, columnCount, rowCount, defCellText="Reserved", longTable=False):
 		"""
 		Builds the table 
 		Arguments:
@@ -402,7 +407,7 @@ class LyxGenerator(BaseGenerator):
 			function.
 		"""
 		table = []	
-		tableOptions = self.build_table_options(columnCount, rowCount)
+		tableOptions = self.build_table_options(columnCount, rowCount, longTable)
 		tableCells = self.build_table_cells(columnCount, rowCount, defCellText)
 		table.append(tableOptions)
 		table.append(tableCells)

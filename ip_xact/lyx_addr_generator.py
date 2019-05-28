@@ -332,7 +332,7 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 		self.lyxGen.write_layout_text("Section", "{}\n".format(
 										block.displayName))
 		tableLen = self.calc_block_table_len(block)
-		table = self.lyxGen.build_table(5, tableLen + 1)
+		table = self.lyxGen.build_table(5, tableLen + 1, longTable=True)
 		
 		self.lyxGen.write_layout_text("Standard", block.description)
 		
