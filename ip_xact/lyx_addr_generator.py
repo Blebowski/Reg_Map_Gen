@@ -199,6 +199,46 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 			self.lyxGen.insert_table(table)
 
 
+	def write_reg_header(self, block, reg):
+		"""
+		Write register header with:
+			- Register name (Subsection)
+			- Register type
+			- Register address
+			- Register size
+			- Conditional presence note (optional)
+			- Description
+		"""
+		# Add the Section title
+		self.lyxGen.write_layout_text("Subsection", "{}\n".format(reg.name),
+											label="label")
+		
+		# Register type, address, size and description
+		self.lyxGen.write_layout_text("Description", "Type: {}\n".format(
+											reg.access))
+
+		# Address
+		self.lyxGen.write_layout_text("Description", "Address: {}\n".format(
+									"0x{:X}".format(reg.addressOffset +
+										block.baseAddress)))
+
+		# Size
+		pluralAp = "s" if (reg.size > 8) else ""
+		self.lyxGen.write_layout_text("Description", "Size: {} byte{}\n".format(
+									int(reg.size / 8), pluralAp))
+
+		# Conditional presence:
+		if (reg.isPresent != ""):
+			paramName = self.parameter_lookup(reg.isPresent)
+			self.lyxGen.write_layout_text("Description", \
+				"Note: Register is present only when {} = true. Otherwise " \
+				"this address is reserved.\n".format(paramName))
+
+		# Description
+		self.lyxGen.write_layout_text("Standard", "{}\n".format(
+										reg.description))
+
+
 	def write_regs(self, block):
 		"""
 		"""
@@ -210,35 +250,20 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 	
 		for reg in sorted(block.register, key=lambda a: a.addressOffset):
 			
-			# Add the Section title
-			self.lyxGen.write_layout_text("Subsection", "{}\n".format(reg.name),
-												label="label")
-			
-			
-			# Register type, address, size and description
-			self.lyxGen.write_layout_text("Description", "Type: {}\n".format(
-												reg.access))
-			self.lyxGen.write_layout_text("Description", "Address: {}\n".format(
-										"0x{:X}".format(reg.addressOffset +
-											block.baseAddress)))
-			pluralAp = "s" if (reg.size > 8) else ""
-			self.lyxGen.write_layout_text("Description", "Size: {} byte{}\n".format(
-										int(reg.size / 8), pluralAp))
-			self.lyxGen.write_layout_text("Standard", "{}\n".format(
-											reg.description))
-			
+			# Register header
+			self.write_reg_header(block, reg)
+
 			# Bit table and bit field descriptions
 			if (self.genFieldDesc == True):
 				self.write_reg_field_table(reg)
 				self.write_reg_field_desc(reg)
-				
-			
+
 			# Separation from next register
 			self.lyxGen.insert_layout("Standard")
 			self.lyxGen.insert_inset("VSpace bigskip")
 			self.lyxGen.commit_append_line(2)
-			
-	
+
+
 	def write_mem_map_title(self):
 		"""
 		"""
@@ -347,7 +372,6 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 
 		# Set header color
 		self.lyxGen.set_cells_color(table, [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4]], "gray")
-
 
 		self.lyxGen.insert_table(table)		
 
