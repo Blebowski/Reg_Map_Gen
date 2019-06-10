@@ -457,6 +457,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		reg_inst.generics["reset_polarity"].value = "reset_polarity".upper()
 		reg_inst.generics["reset_value"].value = self.calc_reg_rstval_mask(reg)
 		reg_inst.generics["auto_clear"].value = self.calc_autoclear_mask(reg)
+		reg_inst.generics["is_lockable"].value = self.get_reg_lock(reg)[0]
 
 
 	def fill_reg_ports(self, block, reg, reg_inst):
@@ -481,6 +482,9 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		# Calculate byte enable index / indices from position of register within a
 		# memory word.
 		reg_inst.ports["w_be"].value = self.calc_reg_byte_enable_vector(reg)
+
+		# Connect lock signal
+		reg_inst.ports["lock"].value = "lock"
 
 
 	def create_reg_instance(self, block, reg):
