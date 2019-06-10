@@ -234,6 +234,12 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 				"Note: Register is present only when {} = true. Otherwise " \
 				"this address is reserved.\n".format(paramName))
 
+		# Lock access
+		lockProps = self.get_reg_lock(reg)
+		if (lockProps[0] == "'1'"):
+			self.lyxGen.write_layout_text("Description", \
+				"Note: {}".format(lockProps[1]))
+
 		# Description
 		self.lyxGen.write_layout_text("Standard", "{}\n".format(
 										reg.description))
