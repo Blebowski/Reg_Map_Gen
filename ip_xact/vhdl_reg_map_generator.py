@@ -424,7 +424,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		for field in sorted(reg.field, key=lambda a: a.bitOffset):
 			if (field.modifiedWriteValue == "clear"):
 				if (field.bitWidth > 1):
-					for j in range(field.bitOffset, field.bitOffset + field.bitWidth - 1):
+					for j in range(field.bitOffset, field.bitOffset + field.bitWidth):
 						autoclearMask[j] = "1"
 				else:
 					autoclearMask[field.bitOffset] = "1"
