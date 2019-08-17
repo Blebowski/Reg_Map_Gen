@@ -51,6 +51,13 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 	genFieldDesc = None
 	genRegions = None
 
+	# Whether register should be skiped based on Config. This is used to
+	# generate datasheet for particular top level generics.
+	skipConditional = False
+
+	# Top level configuration (parsed from YAML config)
+	config = None
+
 	def __init__(self, pyXactComp, memMap, wrdWidthBit, genRegions=True,
 					genFiDesc=True):
 		super().__init__(pyXactComp, memMap, wrdWidthBit)
@@ -60,10 +67,29 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 		self.genFieldDesc = str_arg_to_bool(str(genFiDesc))
 		self.genRegions = str_arg_to_bool(str(genRegions))
 	
-	
+
 	def commit_to_file(self):
 		for line in self.lyxGen.out :
-			self.of.write(line)	
+			self.of.write(line)
+
+
+	def is_reg_present(self, reg):
+		"""
+		"""
+		if (self.config["skip_conditional"] == False):
+			return True
+
+		param_name = self.parameter_lookup(reg.isPresent)
+
+		# Not conditioned by any parameter -> Keep it!		
+		if (param_name == None):
+			return True
+
+		# Condionted by parameter -> keep it if parameter is set to true!
+		if (self.config["parameters"][param_name] == True):
+			return True
+
+		return False
 
 
 	def reg_append_short_enums(self, field):
@@ -100,8 +126,8 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 		"""
 		tmp = "{0:032b}".format(val)
 		return tmp[31 - bitIndex]
-	
-	
+
+
 	def reg_unwrap_fields(self, reg):
 		"""
 		"""
@@ -228,7 +254,7 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 									int(reg.size / 8), pluralAp))
 
 		# Conditional presence:
-		if (reg.isPresent != ""):
+		if (reg.isPresent != "" and self.config["skip_conditional"] == False):
 			paramName = self.parameter_lookup(reg.isPresent)
 			self.lyxGen.write_layout_text("Description", \
 				"Note: Register is present only when {} = true. Otherwise " \
@@ -256,6 +282,9 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 	
 		for reg in sorted(block.register, key=lambda a: a.addressOffset):
 			
+			if (self.is_reg_present(reg) == False):
+				continue
+
 			# Register header
 			self.write_reg_header(block, reg)
 
@@ -309,7 +338,12 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 		"""
 		marks = [0] * (int (block.range / (block.width / 8) ))
 		for reg in sorted(block.register, key=lambda x: x.addressOffset):
+		
+			if (self.is_reg_present(reg) == False):
+				continue
+
 			marks[int((reg.addressOffset * 8) / self.wrdWidthBit)] = 1
+
 		len = 0
 		change = True
 		for mark in marks:
@@ -329,7 +363,7 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 		text = [reg.name for i in range(self.wrdWidthByte)]
 		self.lyxGen.set_cells_object(table, cells, text)
 		self.lyxGen.set_cells_text_label(table, cells, ["hyperref" for i in
-											range(0, len(cells))])	
+											range(0, len(cells))])
 
 	
 	def write_mem_map_reg_table(self, block):
@@ -339,29 +373,34 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 										block.displayName))
 		tableLen = self.calc_block_table_len(block)
 		table = self.lyxGen.build_table(5, tableLen + 1, longTable=True)
-		
+
 		self.lyxGen.write_layout_text("Standard", block.description)
-		
+
 		# Create the header
 		cells = [[0, i] for i in range(5)]
 		text = ["Bits [{}:{}]".format((i + 1) * 8 - 1, i * 8) 
 					for i in reversed(range(0, self.wrdWidthByte))]
 		text += ["Address offset"]
 		self.lyxGen.set_cells_object(table, cells, text)
-		
+
 		self.lyxGen.set_columns_option(table, range(0,4),  
 							[["width", "3cm"]  for j in range(0, 4)])
 		self.lyxGen.set_column_option(table, 4, "width", "1.5cm")
-		
+
 		# Pre write the addresses with "..." for reserved fields
 		cells = [[i + 1, 4] for i in range(tableLen)]
 		text = ["..." for i in range(tableLen)]
 		self.lyxGen.set_cells_object(table, cells, text)
-		
+
 		# Write the registers and addresses
 		row = 1
 		addr = 0
 		for reg in sorted(block.register, key=lambda x: x.addressOffset):
+
+				# Skip registers 
+				if (self.is_reg_present(reg) == False):
+					continue;
+
 				regDiff = math.floor(reg.addressOffset / 4) - addr
 				if (regDiff == 1):
 					row += 1
@@ -406,11 +445,11 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 # Arguments:
 #  of		 	- Output file to write
 ################################################################################	
-	def write_mem_map_both(self):
+	def write_mem_map_both(self):        
 		self.write_mem_map_title()
 		self.write_mem_map_addr()
 		self.write_mem_map_fields()
-		
+
 
 ################################################################################
 # Write register fields constants of single register

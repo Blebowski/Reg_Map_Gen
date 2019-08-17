@@ -70,12 +70,9 @@ class VhdlLyxEntityGeneratorWrapper():
 
 		if (not "template" in self.config):
 			print("Lyx template for conversion is not defined")
-			return
+			return            
 
 		self.lyxTemplate = self.config["template"]
-
-		#print(self.config)
-		#print(self.config["source_list"].items())
 
 		for (name, cfg) in self.config["source_list"].items():
 

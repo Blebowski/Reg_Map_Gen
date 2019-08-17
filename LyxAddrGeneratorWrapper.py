@@ -45,6 +45,7 @@ import importlib.util
 import os
 import inspect
 import math
+import yaml
 
 from .gen_lib import *
 from .ip_xact.lyx_addr_generator import LyxAddrGenerator
@@ -75,6 +76,8 @@ class LyxAddrGeneratorWrapper():
 	# Lyx template path
 	lyxTemplate = ""
 
+	# Path to configuration of generics
+	configPath = None
 
 	def do_update(self):
 
@@ -84,24 +87,27 @@ class LyxAddrGeneratorWrapper():
 			offset = 0
 			addrMap = None
 			fieldMap = None
-		    
+
 			component = Component()
 			component.load(f)
-			
+
 			with open_output(self.outFile) as of:
-				
+
 				lyxGen = LyxAddrGenerator(component, self.memMap, self.wordWidth, 
 											genRegions=self.genRegions,
 											genFiDesc=self.genFiDesc)
 				lyxGen.set_of(of)
 				lyxGen.lyxGen.load_lyx_template(self.lyxTemplate)
-				
-				# Write the documentation
-				lyxGen.write_mem_map_both()
 
-				lyxGen.lyxGen.commit_append_lines_all()
-				
-				lyxGen.commit_to_file()
+				with open(self.configPath, 'rt') as f:
+					lyxGen.config = yaml.safe_load(f)
+
+					# Write the documentation
+					lyxGen.write_mem_map_both()
+
+					lyxGen.lyxGen.commit_append_lines_all()
+
+					lyxGen.commit_to_file()
 
 	if __name__ == '__main__':
 		self.do_update()

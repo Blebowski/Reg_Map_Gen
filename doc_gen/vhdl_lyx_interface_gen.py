@@ -331,7 +331,7 @@ class VhdlLyxEntityGenerator():
 		height = len(self.ent_interface["generics"]) + 1
 		width = 4 # Name, type, default value, description
 
-		table = self.lyxGen.build_table(width, height, defCellText="")
+		table = self.lyxGen.build_table(width, height, defCellText="", longTable=True)
 
 		# Set widths of table to avoid text overflow
 		self.lyxGen.set_column_option(table, 0, "width", "4cm")
@@ -367,7 +367,7 @@ class VhdlLyxEntityGenerator():
 		height = len(self.ent_interface["ports"]) + 1
 		width = 4 # Name, direction, type, description
 
-		table = self.lyxGen.build_table(width, height, defCellText="")
+		table = self.lyxGen.build_table(width, height, defCellText="", longTable=True)
 
 		# Set widths of table to avoid text overflow
 		self.lyxGen.set_column_option(table, 0, "width", "4cm")
