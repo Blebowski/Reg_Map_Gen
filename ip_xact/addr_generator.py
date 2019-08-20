@@ -27,8 +27,7 @@
 ###############################################################################
 ##
 ##	 Base class for specific address Map generators.
-##   Two separate address maps are considered. Map for address creation
-##   and map for bitfields, enums and reset values creation.
+##   Two separate address maps are considered.
 ##
 ##	Revision history:
 ##		25.01.2018	First implementation
