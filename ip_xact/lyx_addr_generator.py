@@ -75,13 +75,17 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 
 	def is_reg_present(self, reg):
 		"""
+        Check whether register should be written to documentation. Affected by:
+            1. Skip conditional attribute in document config.
+            2. isPresent IP-XACT parameter of register. Parameter value read
+               from config file!
 		"""
 		if (self.config["skip_conditional"] == False):
 			return True
 
 		param_name = self.parameter_lookup(reg.isPresent)
 
-		# Not conditioned by any parameter -> Keep it!		
+		# Not conditioned by any parameter -> Keep it!	
 		if (param_name == None):
 			return True
 
@@ -94,6 +98,8 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 
 	def reg_append_short_enums(self, field):
 		"""
+        Create line with enums for given register field. Enum name and description 
+        are addedd to each line.
 		"""
 		appendText = ""
 		if (field.enumeratedValues == []):
@@ -107,11 +113,14 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 					binFmt = binSize.format(e.value)
 					appendText += "		0b{}  - {} - {}".format(binFmt, e.name, 
 						e.description)
-		return appendText		
+
+		return appendText
 
 
 	def write_reg_field_desc(self, reg):
 		"""
+        Write description of register fields. Each field will have enums listed
+        if enums are defined.
 		"""
 		for field in sorted(reg.field, key=lambda a: a.bitOffset):
 			self.lyxGen.insert_layout("Description")
@@ -176,7 +185,6 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 					fieldName = "Reserved"
 					fieldRst = "-"
 				
-				
 				retVal[i][j].append(fieldName)
 				retVal[i][j].append(fieldRst)	
 		return retVal
@@ -185,7 +193,7 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 	def write_reg_field_table(self, reg):
 		"""
 		"""
-		
+
 		regFields = self.reg_unwrap_fields(reg)
 		
 		for i in reversed(range(1, int(reg.size / 8 + 1))):
@@ -397,20 +405,20 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 		addr = 0
 		for reg in sorted(block.register, key=lambda x: x.addressOffset):
 
-				# Skip registers 
-				if (self.is_reg_present(reg) == False):
-					continue;
+			# Skip registers 
+			if (self.is_reg_present(reg) == False):
+				continue;
 
-				regDiff = math.floor(reg.addressOffset / 4) - addr
-				if (regDiff == 1):
-					row += 1
-				elif (regDiff > 1):
-					row += 2
-				addr += regDiff
-				self.write_mem_map_reg_single(table, reg, row)
-				self.lyxGen.set_cell_object(table, row, 4, 
-							"0x{:X}".format(4 * math.floor(reg.addressOffset / 4) +
-											 block.baseAddress))				
+			regDiff = math.floor(reg.addressOffset / 4) - addr
+			if (regDiff == 1):
+				row += 1
+			elif (regDiff > 1):
+				row += 2
+			addr += regDiff
+			self.write_mem_map_reg_single(table, reg, row)
+			self.lyxGen.set_cell_object(table, row, 4, 
+						"0x{:X}".format(4 * math.floor(reg.addressOffset / 4) +
+										 block.baseAddress))				
 		
 		self.lyxGen.merge_common_fields(table, [i for i in range(1, tableLen + 1)],
 									endCol=4)
