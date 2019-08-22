@@ -786,6 +786,9 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 			1. Write cover point for each writable register.
 			2. Read cover point for each readable register.
 		"""
+		# Add release OFF
+		self.vhdlGen.write_comment("<RELEASE_OFF>", gap = 4, small=True)
+
 		# Add functional coverage comment
 		self.vhdlGen.write_comment("PSL functional coverage", gap = 4)
 		
@@ -803,6 +806,9 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 			# Create read psl coverage for every readable register
 			if (self.reg_has_access_type(reg, ["read"])):
 				self.create_psl_cover_point(block, reg, "read");
+
+		# Add release ON
+		self.vhdlGen.write_comment("<RELEASE_ON>", gap = 4, small=True)
 
 
 	def create_read_data_mux_ena(self):
