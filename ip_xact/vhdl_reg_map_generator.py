@@ -769,13 +769,13 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 			else:
 				be_str += ")"
 
-		self.vhdlGen.write_comment(" psl {}_{}_access_cov : cover (".format(
+		self.vhdlGen.write_comment(" psl {}_{}_access_cov : cover {{".format(
 			reg.name.lower(), acc_type), gap = 4, small=True)
 		self.vhdlGen.write_comment("    cs = '1' and {} = '1' " \
 			"and reg_sel({}) = '1' and ".format(acc_type, reg_sel_index),
 			gap=4, small=True)
 
-		self.vhdlGen.write_comment("    {});".format(be_str), gap=4, small=True)
+		self.vhdlGen.write_comment("    {}}};".format(be_str), gap=4, small=True)
 		self.vhdlGen.wr_nl()
 
 
