@@ -270,7 +270,7 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 
 		# Lock access
 		lockProps = self.get_reg_lock(reg)
-		if (lockProps[0] == "'1'"):
+		if (lockProps[0] == "true"):
 			self.lyxGen.write_layout_text("Description", \
 				"Note: {}".format(lockProps[1]))
 

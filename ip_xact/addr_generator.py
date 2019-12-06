@@ -299,12 +299,17 @@ class IpXactAddrGenerator(metaclass=ABCMeta):
 	def get_reg_lock(self, reg):
 		"""
 		Search for Vendor extension 'regLock' property on given register.
+        Returns:
+            [has_lock, lock_description, lock_signal]
+            has_lock - 'true' if register is lockable, 'false' otherwise
+            lock_signal - name of signal used to lock access to the registers!
 		"""
 		for regLock in self.pyXactComp.vendorExtensions.regLocks.regLock:
-			if (regLock.name == reg.name):
-				return ["'1'", self.pyXactComp.vendorExtensions.regLocks.Description]
-   
-		return ["'0'"]
+			if (regLock.reg_name == reg.name):
+				return ["true", regLock.description, regLock.lock_signal]
+
+		return ["false", None, "'0'"]
+
 
 	def calc_addr_width_from_size(self, size):
 		"""

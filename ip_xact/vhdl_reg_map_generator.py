@@ -484,7 +484,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		reg_inst.ports["w_be"].value = self.calc_reg_byte_enable_vector(reg)
 
 		# Connect lock signal
-		reg_inst.ports["lock"].value = "lock"
+		reg_inst.ports["lock"].value = self.get_reg_lock(reg)[2]
 
 
 	def create_reg_instance(self, block, reg):
