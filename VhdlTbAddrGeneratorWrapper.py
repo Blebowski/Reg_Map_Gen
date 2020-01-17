@@ -28,14 +28,12 @@
 ##
 ##   Copyright (C) 2017 Ondrej Ille <ondrej.ille@gmail.com>
 ##   
-##   Class for generation of VHDL package from IP-XACT specification. Register
-##   map addresses, bit field offsets and enums are generated. Two separate
-##   register maps can be specified: one for bit fields, one for addresses.
-##   
+##   Class for generation of VHDL Tesbench package from IP-XACT specification.
+##   List of registers with reset values, register types, indication of imple-
+##   mented/not-implemented bits.
+##
 ##	Revision history:
-##		16.01.2018	Implemented the script
-##      25.11.2018  Joined field and address map to a single memory map/
-##                  Re-implemented script to be Python class
+##		17.01.2020	Implemented the script
 ##
 ################################################################################
 
@@ -48,10 +46,10 @@ import inspect
 import math
 
 from .gen_lib import *
-from .ip_xact.vhdl_addr_generator import VhdlAddrGenerator
+from .ip_xact.vhdl_tb_addr_generator import VhdlTbAddrGenerator
 
 
-class VhdlAddrGeneratorWrapper():
+class VhdlTbAddrGeneratorWrapper():
 
     # File with license which should be placed to header of the all source code files
     licPath = ""
@@ -86,7 +84,7 @@ class VhdlAddrGeneratorWrapper():
 			    
 		    with open_output(self.outFile) as of:
 			    
-			    vhdlGen = VhdlAddrGenerator(component, self.memMap, self.wordWidth)
+			    vhdlGen = VhdlTbAddrGenerator(component, self.memMap, self.wordWidth)
 			    vhdlGen.set_of(of)
 			    
 			    if (self.licPath != ""):
