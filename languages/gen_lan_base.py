@@ -36,6 +36,7 @@
 
 from abc import ABCMeta, abstractmethod
 from pyXact_generator.languages.gen_base import BaseGenerator
+from enum import Enum
 
 class LanBaseGenerator(BaseGenerator):
 	
@@ -69,7 +70,19 @@ class LanBaseGenerator(BaseGenerator):
 		
 	def commit_append_lines_all(self):
 		return super().commit_append_lines_all()
-		
+
+	class LogicOp(Enum):
+		OP_ASIGN = 0
+		OP_COMPARE = 1
+		OP_AND = 2
+		OP_OR = 3
+		OP_XOR = 4
+		OP_ADD = 5
+		OP_SUB = 6
+		OP_MUL = 7
+		OP_DIV = 8
+		OP_NOT = 9
+
 		
 ################################################################################
 #	Language generator specific functions which should be implemented

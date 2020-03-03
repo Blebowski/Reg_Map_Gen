@@ -80,9 +80,34 @@ class VhdlGenerator(LanBaseGenerator):
 			gap		 Number of tabs before the comment line
 		"""
 		self.__wr_line('{:{fill}<80}\n'.format(" " * gap, fill=self.commentSign))
-	
-	
-	def write_comment(self, input, gap=0, caption=None, small=False):
+
+
+	def logic_op_to_str(self, logicOp):
+		"""
+		"""
+		assert(type(logicOp) == self.LogicOp), "'logicOp' should have type LogicOp"
+		if (logicOp == self.LogicOp.OP_ASIGN):
+			return "<="
+		if (logicOp == self.LogicOp.OP_COMPARE):
+			return "="
+		if (logicOp == self.LogicOp.OP_AND):
+			return " and "
+		if (logicOp == self.LogicOp.OP_OR):
+			return " or "
+		if (logicOp == self.LogicOp.OP_XOR):
+			return " xor "
+		if (logicOp == self.LogicOp.OP_ADD):
+			return "+"
+		if (logicOp == self.LogicOp.OP_SUB):
+			return "-"	
+		if (logicOp == self.LogicOp.OP_MUL):
+			return "*"
+		if (logicOp == self.LogicOp.OP_DIV):
+			return "/"
+		if (logicOp == self.LogicOp.OP_NOT):
+			return " not "
+
+	def write_comment(self, input, gap=0, caption=None, small=False, wrapLine=True):
 		""" 
 		Write VHDL comment in format:
 			--------------------------------------------------------------------
@@ -104,10 +129,13 @@ class VhdlGenerator(LanBaseGenerator):
 			self.__wr_line(" " * gap + self.commentSign + self.commentSign + 
 								" {}\n{}\n".format(caption," " *gap+"--"))
 		
-		lines = split_string(input, 75)
-		for line in lines:
-			self.__wr_line('{}{} {}\n'.format(" " * gap, self.commentSign * 2 ,
-							line))
+		if (wrapLine):
+			lines = split_string(input, 75)
+			for line in lines:
+				self.__wr_line('{}{} {}\n'.format(" " * gap, self.commentSign * 2 ,
+								line))
+		else:
+			self.__wr_line('{}{} {}'.format(" " * gap, self.commentSign * 2, input))
 		
 		if (small == False):
 			self.write_comm_line(gap)
@@ -334,6 +362,65 @@ class VhdlGenerator(LanBaseGenerator):
 		
 		self.__wr_line(" " * decl.gap + pref + newLineChar + post)
 		return True
+
+
+	def push_parallel_assignment(self, signalName, gap = 2):
+		"""
+		Start parallel assignment ('signal_A <= ')
+		"""
+		self.__wr_line("{}{} <=".format(" " * gap, signalName))
+		self.append_line(";\n")
+
+
+	def format_vector_range(self, signalName, u_ind, l_ind, direction = "downto"):
+		"""
+		Format declaration of vector range.
+		"""
+		return "{}({} {} {})".format(signalName, u_ind, direction, l_ind);
+
+
+	def format_logic_op(self, operand_lst, logic_op):
+		"""
+		"""
+		assert(type(operand_lst) == list), "'operand_lst' should have type list"
+		assert(type(logic_op) == self.LogicOp), "'logic_op' should have type LogicOperation"
+		assert(len(operand_lst) > 0), "'operand_lst' should be non-empty"
+
+		retStr = "({}".format(operand_lst[0])
+		if (len(operand_lst) > 1):
+			for val in operand_lst[1:]:
+				retStr += "{}{}".format(self.logic_op_to_str(logic_op), val)
+		retStr += ")"
+		return retStr
+
+
+	def format_bin_const(self, const):
+		"""
+		Format binary constant
+		"""
+		assert (type(const) == str), "'const' should be string type"
+		if (len(const) == 1):
+			return "'{}'".format(const)
+		return '"{}"'.format(const)
+
+
+	def format_vector_index(self, signalName, ind):
+		"""
+		Format vector index
+		"""
+		return "{}({})".format(signalName, ind)
+
+
+	def format_concatenation(self, vals):
+		"""
+		"""
+		assert type(vals) == list, "'vals' argument should be list"
+		assert len(vals) > 0, "'vals' should have more than 0 elements"
+		concat_val = vals[0]
+		if (len(vals) > 1):
+			for val in vals[1:]:
+				concat_val += "& {}".format(val)
+		return concat_val
 
 
 	def format_decls(self, decls, gap, alignLeft, alignRight, alignLen, wrap):
@@ -762,4 +849,16 @@ class VhdlGenerator(LanBaseGenerator):
 
 		fd.close()
 		return entity
+
+
+	def write_assertion(self, name, asrt_type, sequence, gap = 4):
+		"""
+		"""
+		assert(type(name) == str), "'name' type should be string"
+
+		self.write_comment("psl {} : {}".format(name, asrt_type), gap = 4,
+							small = True)
+		self.write_comment("{{{}}};".format(sequence), gap = 4, small = True,
+							wrapLine = False)
+		self.__wr_line("\n")
 
