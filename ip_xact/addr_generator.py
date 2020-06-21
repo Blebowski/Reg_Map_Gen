@@ -59,7 +59,7 @@ def move_till_text(of, text):
         text		Text until which to move in a file
     """
     line = "BEGIN"
-    while line != None:
+    while line is not None:
         line = of.read()
         if line == text:
             break
@@ -137,7 +137,7 @@ def calc_reg_rstval_mask(reg):
     # Go through fields and replace each bit index by a reset value
     for field in sorted(reg.field, key=lambda a: a.bitOffset):
         if field.resets is None:
-            continue;
+            continue
         remainder = field.resets.reset.value
         for j in range(field.bitWidth):
             if remainder % 2 == 1:
@@ -168,7 +168,7 @@ class IpXactAddrGenerator(metaclass=ABCMeta):
         self.wrdWidthByte = int(word_width / 8)
 
         if not pyXact_comp.memoryMaps:
-            return None
+            return
 
         for map_inst in pyXact_comp.memoryMaps.memoryMap:
             if map_inst.name == mem_map:
@@ -222,7 +222,7 @@ class IpXactAddrGenerator(metaclass=ABCMeta):
         """
         return math.floor(addr - (addr % self.wrdWidthByte))
 
-    def calc_blk_wrd_span(self, block, accesses=[""]):
+    def calc_blk_wrd_span(self, block, accesses=None):
         """
         Calculate minimal address span for address block with registers of
         given access types.
@@ -230,6 +230,8 @@ class IpXactAddrGenerator(metaclass=ABCMeta):
             [low_addr, high_addr] - Lowest higher addresses within a block
                 with registers of given access types.
         """
+        if accesses is None:
+            accesses = [""]
         low_addr = block.range
         high_addr = 0
 
@@ -245,7 +247,7 @@ class IpXactAddrGenerator(metaclass=ABCMeta):
 
         return [low_addr, high_addr]
 
-    def calc_blk_wrd_count(self, block, accesses=[""]):
+    def calc_blk_wrd_count(self, block, accesses=None):
         """
         Calculate number of memory words in a block occupied by a registers
         of this block.
@@ -254,6 +256,8 @@ class IpXactAddrGenerator(metaclass=ABCMeta):
             accesses    List of register access types that should be considered.
                         If not specified, every register is considered.
         """
+        if accesses is None:
+            accesses = [""]
         cnt = 0
         highest_wrd = -1
         for reg in sorted(block.register, key=lambda a: a.addressOffset):
@@ -270,11 +274,13 @@ class IpXactAddrGenerator(metaclass=ABCMeta):
 
         return cnt
 
-    def get_wrd_index(self, block, reg, accesses=[""]):
+    def get_wrd_index(self, block, reg, accesses=None):
         """
         Calculate index of memory word which contains given register. Take
         into account only registers with given access types.
         """
+        if accesses is None:
+            accesses = [""]
         index = 0
 
         # Check each word in the memory block

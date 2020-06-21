@@ -71,6 +71,56 @@ def get_bit(val, bitIndex):
     return tmp[31 - bitIndex]
 
 
+def reg_unwrap_fields(reg):
+    """
+    """
+    ret_val = [[], [], [], []]
+
+    for i in range(0, int(reg.size / 8)):
+        for j in range(0, 8):
+            ret_val[i].append([])
+
+            # Check if such a field exists
+            field_exist = False
+            for field in sorted(reg.field, key=lambda a: a.bitOffset):
+                tmp = (7 - j) + i * 8
+                if field.bitOffset <= tmp < field.bitOffset + field.bitWidth:
+                    field_exist = True
+                    break
+
+            # Insert the field or reserved field
+            if field_exist:
+                field_name = field.name
+                if (field.resets is not None) and (field.resets.reset is not None):
+                    field_rst = get_bit(field.resets.reset.value,
+                                        tmp - field.bitOffset)
+                else:
+                    field_rst = "X"
+
+                # If the field is overllaped over several 8 bit registers
+                # add index to define it more clearly
+                if (int(field.bitOffset / 8) !=
+                        int((field.bitOffset + field.bitWidth - 1) / 8)):
+                    h_ind = min(field.bitOffset + field.bitWidth - 1,
+                               ((i + 1) * 8) - 1)
+                    l_ind = max(field.bitOffset, (i * 8))
+                    h_ind = h_ind - field.bitOffset
+                    l_ind = l_ind - field.bitOffset
+                    append = "[{}".format(h_ind)
+                    if h_ind != l_ind:
+                        append += ":{}]".format(l_ind)
+                    else:
+                        append += "]"
+                    field_name = field_name + append
+            else:
+                field_name = "Reserved"
+                field_rst = "-"
+
+            ret_val[i][j].append(field_name)
+            ret_val[i][j].append(field_rst)
+    return ret_val
+
+
 class LyxAddrGenerator(IpXactAddrGenerator):
     lyxGen = None
 
@@ -131,59 +181,10 @@ class LyxAddrGenerator(IpXactAddrGenerator):
             self.lyxGen.wr_line("{} {}\n".format(field.name, descText))
             self.lyxGen.commit_append_line(1)
 
-    def reg_unwrap_fields(self, reg):
-        """
-        """
-        ret_val = [[], [], [], []]
-
-        for i in range(0, int(reg.size / 8)):
-            for j in range(0, 8):
-                ret_val[i].append([])
-
-                # Check if such a field exists
-                field_exist = False
-                for field in sorted(reg.field, key=lambda a: a.bitOffset):
-                    tmp = (7 - j) + i * 8
-                    if field.bitOffset <= tmp < field.bitOffset + field.bitWidth:
-                        field_exist = True
-                        break
-
-                # Insert the field or reserved field
-                if field_exist:
-                    field_name = field.name
-                    if (field.resets is not None) and (field.resets.reset is not None):
-                        field_rst = get_bit(field.resets.reset.value,
-                                            tmp - field.bitOffset)
-                    else:
-                        field_rst = "X"
-
-                    # If the field is overllaped over several 8 bit registers
-                    # add index to define it more clearly
-                    if (int(field.bitOffset / 8) !=
-                            int((field.bitOffset + field.bitWidth - 1) / 8)):
-                        h_ind = min(field.bitOffset + field.bitWidth - 1,
-                                   ((i + 1) * 8) - 1)
-                        l_ind = max(field.bitOffset, (i * 8))
-                        h_ind = h_ind - field.bitOffset
-                        l_ind = l_ind - field.bitOffset
-                        append = "[{}".format(h_ind)
-                        if h_ind != l_ind:
-                            append += ":{}]".format(l_ind)
-                        else:
-                            append += "]"
-                        field_name = field_name + append
-                else:
-                    field_name = "Reserved"
-                    field_rst = "-"
-
-                ret_val[i][j].append(field_name)
-                ret_val[i][j].append(field_rst)
-        return ret_val
-
     def write_reg_field_table(self, reg):
         """
         """
-        reg_fields = self.reg_unwrap_fields(reg)
+        reg_fields = reg_unwrap_fields(reg)
 
         for i in reversed(range(1, int(reg.size / 8 + 1))):
             table = self.lyxGen.build_table(9, 3)
@@ -191,8 +192,6 @@ class LyxAddrGenerator(IpXactAddrGenerator):
             # Set the width
             self.lyxGen.set_columns_option(table, range(1, 9),
                                            [["width", "1.4cm"] for j in range(1, 9)])
-
-            rows = [[row, j + 1] for j in range(8) for row in range(3)]
 
             # Title row
             self.lyxGen.set_cell_object(table, 0, 0, "Bit index")
@@ -250,16 +249,16 @@ class LyxAddrGenerator(IpXactAddrGenerator):
             int(reg.size / 8), plural_ap))
 
         # Conditional presence:
-        if reg.isPresent != "" and self.config["skip_conditional"] == False:
+        if reg.isPresent != "" and self.config["skip_conditional"] is False:
             param_name = self.parameter_lookup(reg.isPresent)
-            self.lyxGen.write_layout_text("Description", \
-                                          "Note: Register is present only when {} = true. Otherwise " \
+            self.lyxGen.write_layout_text("Description",
+                                          "Note: Register is present only when {} = true. Otherwise "
                                           "this address is reserved.\n".format(param_name))
 
         # Lock access
         lock_props = self.get_reg_lock(reg)
         if lock_props[0] == "true":
-            self.lyxGen.write_layout_text("Description", \
+            self.lyxGen.write_layout_text("Description",
                                           "Note: {}".format(lock_props[1]))
 
         # Description
@@ -389,7 +388,7 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 
             # Skip registers
             if not self.is_reg_present(reg):
-                continue;
+                continue
 
             reg_diff = math.floor(reg.addressOffset / 4) - addr
             if reg_diff == 1:
