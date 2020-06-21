@@ -1,4 +1,5 @@
-################################################################################                                                     
+"""
+################################################################################
 ## 
 ## Register map generation tool
 ##
@@ -39,17 +40,11 @@
 ##      27.11.2018  Changed script to be a class
 ##
 ################################################################################
-
-import argparse
-import sys
-import time
-import importlib.util
-import os
-import inspect
-import math
+"""
 
 from .gen_lib import *
 from .ip_xact.h_addr_generator import HeaderAddrGenerator
+
 
 class HeaderAddrGeneratorWrapper():
 
@@ -93,7 +88,7 @@ class HeaderAddrGeneratorWrapper():
 				    write_license(lic_text, '*', of)
 				    
 			    headerGen.prefix = "ctu_can_fd"
-			    headerGen.create_addrMap_package(self.headName)
+			    headerGen.create_addr_map_package(self.headName)
 			    
 			    headerGen.commit_to_file()
 

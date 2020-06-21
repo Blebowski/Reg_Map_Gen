@@ -1,4 +1,5 @@
-################################################################################                                                     
+"""
+################################################################################
 ## 
 ## Register map generation tool
 ##
@@ -34,204 +35,196 @@
 ##		17.01.2020	First implementation
 ##
 ################################################################################
+"""
 
-from abc import ABCMeta, abstractmethod
-from pyXact_generator.ip_xact.addr_generator import IpXactAddrGenerator
-
+from pyXact_generator.ip_xact.addr_generator import *
 from pyXact_generator.languages.gen_vhdl import VhdlGenerator
 from pyXact_generator.languages.declaration import LanDeclaration
 
+
 class VhdlTbAddrGenerator(IpXactAddrGenerator):
+    vhdlGen = None
 
-	vhdlGen = None
+    def __init__(self, pyXactComp, memMap, wrdWidth):
+        super().__init__(pyXactComp, memMap, wrdWidth)
+        self.vhdlGen = VhdlGenerator()
 
-	def __init__(self, pyXactComp, memMap, wrdWidth):
-		super().__init__(pyXactComp, memMap, wrdWidth)
-		self.vhdlGen = VhdlGenerator()
+    def commit_to_file(self):
+        """
+        Commit the generator output into the output file.
+        """
+        for line in self.vhdlGen.out:
+            self.of.write(line)
 
+    def write_cmn_types(self):
+        """
+        Write common types used for generation of register list.
+        """
+        self.vhdlGen.write_comment("Common types", gap=2)
 
-	def commit_to_file(self):
-		""" 
-		Commit the generator output into the output file.
-		"""
-		for line in self.vhdlGen.out :
-			self.of.write(line)
+        # Write register type enum
+        reg_type_enum = []
+        reg_type_enum.append(LanDeclaration("reg_none", ""))
+        reg_type_enum.append(LanDeclaration("reg_write_only", ""))
+        reg_type_enum.append(LanDeclaration("reg_read_only", ""))
+        reg_type_enum.append(LanDeclaration("reg_read_write", ""))
+        reg_type_enum.append(LanDeclaration("reg_read_write_once", ""))
+        for enum_elem in reg_type_enum:
+            enum_elem.gap = 4
 
+        self.vhdlGen.create_enum("t_reg_type", reg_type_enum, gap=2)
+        self.vhdlGen.wr_nl()
+        self.vhdlGen.wr_nl()
 
-	def write_cmn_types(self):
-		"""
-		Write common types used for generation of register list.
-		"""
-		self.vhdlGen.write_comment("Common types", gap = 2)
+        # Write register record
+        reg_addr = LanDeclaration("address", "")
+        reg_addr.type = "std_logic_vector"
+        reg_addr.bitWidth = 12
+        reg_addr.gap = 4
 
-		# Write register type enum
-		reg_type_enum = []
-		reg_type_enum.append(LanDeclaration("reg_none", ""))
-		reg_type_enum.append(LanDeclaration("reg_write_only", ""))
-		reg_type_enum.append(LanDeclaration("reg_read_only", ""))
-		reg_type_enum.append(LanDeclaration("reg_read_write", ""))
-		reg_type_enum.append(LanDeclaration("reg_read_write_once", ""))
-		for enum_elem in reg_type_enum:
-			enum_elem.gap = 4
+        reg_size = LanDeclaration("size", "")
+        reg_size.type = "integer"
+        reg_size.gap = 4
 
-		self.vhdlGen.create_enum("t_reg_type", reg_type_enum, gap = 2)
-		self.vhdlGen.wr_nl()
-		self.vhdlGen.wr_nl()
+        reg_type = LanDeclaration("reg_type", "")
+        reg_type.type = "t_reg_type"
+        reg_type.gap = 4
 
-		# Write register record
-		reg_addr = LanDeclaration("address", "")
-		reg_addr.type = "std_logic_vector"
-		reg_addr.bitWidth = 12
-		reg_addr.gap = 4
+        reset_val = LanDeclaration("reset_val", "")
+        reset_val.type = "std_logic_vector"
+        reset_val.gap = 4
+        reset_val.bitWidth = self.wrdWidthBit
 
-		reg_size = LanDeclaration("size", "")
-		reg_size.type = "integer"
-		reg_size.gap = 4
+        implemented = LanDeclaration("is_implem", "")
+        implemented.type = "std_logic_vector"
+        implemented.gap = 4
+        implemented.bitWidth = self.wrdWidthBit
 
-		reg_type = LanDeclaration("reg_type", "")
-		reg_type.type = "t_reg_type"
-		reg_type.gap = 4
+        self.vhdlGen.create_structure("t_memory_reg", \
+                                      [reg_addr, reg_size, reg_type, reset_val, implemented], gap=2)
 
-		reset_val = LanDeclaration("reset_val", "")
-		reset_val.type = "std_logic_vector"
-		reset_val.gap = 4
-		reset_val.bitWidth = self.wrdWidthBit
+        self.vhdlGen.wr_nl()
+        self.vhdlGen.wr_nl()
 
-		implemented = LanDeclaration("is_implem","")
-		implemented.type = "std_logic_vector"
-		implemented.gap = 4
-		implemented.bitWidth = self.wrdWidthBit
+    def get_padded_rst_mask(self, reg):
+        """
+        Pad reset value of register with zeroes and fit it into word size.
+        Other bits of the word are 0.
+        """
+        res_mask_reg = calc_reg_rstval_mask(reg).strip('"')
+        upper_pad = self.wrdWidthBit - ((reg.addressOffset % self.wrdWidthByte) * 8 + reg.size)
+        lower_pad = (reg.addressOffset % self.wrdWidthByte) * 8
+        return "0" * upper_pad + res_mask_reg + "0" * lower_pad
 
-		self.vhdlGen.create_structure("t_memory_reg", \
-			[reg_addr, reg_size, reg_type, reset_val, implemented], gap = 2)
+    def get_implemented_mask(self, reg):
+        """
+        Return register mask string with '1' if given bit is implemented and '0' if not.
+        """
+        strMask = ["0" for x in range(0, self.wrdWidthBit)]
+        startInd = (reg.addressOffset % 4) * 8
+        endInd = startInd + reg.size
+        for i in range(startInd, endInd):
+            found = False
+            for field in reg.field:
+                if (i >= field.bitOffset and i < field.bitOffset + field.bitWidth):
+                    strMask[i] = "1"
+                    found = True;
+            if (not found):
+                strMask[i] = "0"
 
-		self.vhdlGen.wr_nl()
-		self.vhdlGen.wr_nl()
+        strMask.reverse()
 
+        return "".join(strMask)
 
-	def get_padded_rst_mask(self, reg):
-		"""
-		Pad reset value of register with zeroes and fit it into word size.
-		Other bits of the word are 0.
-		"""
-		res_mask_reg = self.calc_reg_rstval_mask(reg).strip('"')
-		upper_pad = self.wrdWidthBit - ((reg.addressOffset % self.wrdWidthByte) * 8 + reg.size)
-		lower_pad = (reg.addressOffset % self.wrdWidthByte) * 8
-		return "0" * upper_pad + res_mask_reg + "0" * lower_pad
+    def write_addrbl_reg_list(self, addressBlock):
+        """
+        Write list of registers within an address block.
+        """
+        self.vhdlGen.wr_nl()
+        self.vhdlGen.write_comment("Register list", gap=2)
 
+        # Write register type (declaration does not support array, do it directly)
+        array_str = "  type t_{}_list is array (0 to {}) of t_memory_reg;\n".format(
+            addressBlock.name, len(addressBlock.register) - 1)
+        self.vhdlGen.wr_nl()
+        self.vhdlGen.wr_line(array_str)
+        self.vhdlGen.wr_nl()
 
-	def get_implemented_mask(self, reg):
-		"""
-		Return register mask string with '1' if given bit is implemented and '0' if not.
-		"""
-		strMask = ["0" for x in range(0, self.wrdWidthBit)]
-		startInd = (reg.addressOffset % 4) * 8
-		endInd = startInd + reg.size
-		for i in range(startInd, endInd):
-			found = False
-			for field in reg.field:
-				if (i >= field.bitOffset and i < field.bitOffset + field.bitWidth):
-					strMask[i] = "1"
-					found = True;
-			if (not found):
-				strMask[i] = "0"
+        # Write list of registers
+        self.vhdlGen.wr_line("  constant {}_list : t_{}_list :=(\n".format(
+            addressBlock.name, addressBlock.name))
+        self.vhdlGen.wr_nl()
 
-		strMask.reverse()
+        for i, reg in enumerate(sorted(addressBlock.register, key=lambda a: a.addressOffset)):
+            self.vhdlGen.wr_line("    (address   => {}_ADR,\n".format(reg.name.upper()))
+            self.vhdlGen.wr_line("     size      => {},\n".format(reg.size))
 
-		return "".join(strMask)
+            reg_t_str = "reg_none"
+            if (reg.access == "read-only"):
+                reg_t_str = "reg_read_only"
 
+            elif (reg.access == "write-only"):
+                reg_t_str = "reg_write_only"
 
-	def write_addrbl_reg_list(self, addressBlock):
-		"""
-		Write list of registers within an address block.
-		"""
-		self.vhdlGen.wr_nl()
-		self.vhdlGen.write_comment("Register list", gap = 2)
-		
-		# Write register type (declaration does not support array, do it directly)
-		array_str = "  type t_{}_list is array (0 to {}) of t_memory_reg;\n".format(
-						addressBlock.name, len(addressBlock.register) - 1)
-		self.vhdlGen.wr_nl()
-		self.vhdlGen.wr_line(array_str)
-		self.vhdlGen.wr_nl()
+            elif (reg.access == "read-write"):
+                reg_t_str = "reg_read_write"
 
-		# Write list of registers
-		self.vhdlGen.wr_line("  constant {}_list : t_{}_list :=(\n".format(
-			addressBlock.name, addressBlock.name))
-		self.vhdlGen.wr_nl()
+            elif (reg.access == "read-writeOnce"):
+                reg_t_str = "reg_read_write_once"
 
-		for i,reg in enumerate(sorted(addressBlock.register, key=lambda a: a.addressOffset)):
-			self.vhdlGen.wr_line("    (address   => {}_ADR,\n".format(reg.name.upper()))
-			self.vhdlGen.wr_line("     size      => {},\n".format(reg.size))
+            self.vhdlGen.wr_line("     reg_type  => {},\n".format(reg_t_str))
 
-			reg_t_str = "reg_none"
-			if (reg.access == "read-only"):
-				reg_t_str = "reg_read_only"
+            # Calculate reset mask and offset to position of reg
+            self.vhdlGen.wr_line('     reset_val => "{}",\n'.format(self.get_padded_rst_mask(reg)))
 
-			elif (reg.access == "write-only"):
-				reg_t_str = "reg_write_only"
+            # Create vector with implemented bits
+            self.vhdlGen.wr_line('     is_implem => "{}")'.format(self.get_implemented_mask(reg)))
 
-			elif (reg.access == "read-write"):
-				reg_t_str = "reg_read_write"
+            if (i == len(addressBlock.register) - 1):
+                self.vhdlGen.wr_line("\n  );\n")
+            else:
+                self.vhdlGen.wr_line(",\n")
 
-			elif (reg.access == "read-writeOnce"):
-				reg_t_str = "reg_read_write_once"
-
-			self.vhdlGen.wr_line("     reg_type  => {},\n".format(reg_t_str))
-
-			# Calculate reset mask and offset to position of reg
-			self.vhdlGen.wr_line('     reset_val => "{}",\n'.format(self.get_padded_rst_mask(reg)))
-
-			# Create vector with implemented bits
-			self.vhdlGen.wr_line('     is_implem => "{}")'.format(self.get_implemented_mask(reg)))
-
-			if (i == len(addressBlock.register) - 1):
-				self.vhdlGen.wr_line("\n  );\n")
-			else:
-				self.vhdlGen.wr_line(",\n")
-
-
-	def write_mem_map_addr(self):
-		""" 
-		Write addresses and address block head for IP-XACT memory map to
+    def write_mem_map_addr(self):
+        """
+        Write addresses and address block head for IP-XACT memory map to
         generator output.
-		"""
-		for block in self.memMap.addressBlock:
-			self.write_addrbl_reg_list(block)
-			self.vhdlGen.wr_nl()
+        """
+        for block in self.memMap.addressBlock:
+            self.write_addrbl_reg_list(block)
+            self.vhdlGen.wr_nl()
 
-		
-	def create_addrMap_package(self, name):
-		""" 
-		Create a VHDL package to the address generator output. Insert basic
-		IEEE include: std_logic_1164.all. Add list of registers.
-		Arguments:
-			name	VHDL pacakge name
-		"""
-		self.vhdlGen.wr_nl()
-		self.vhdlGen.write_comm_line(gap=0)
-		if (self.memMap != None):
-			print ("Writing testbench addresses of '%s' register map" % self.memMap.name)
-			self.vhdlGen.write_comment("Memory map for: {}".format(
-											self.memMap.name), 0, small=True)
-		self.vhdlGen.write_gen_note()
+    def create_addrMap_package(self, name):
+        """
+        Create a VHDL package to the address generator output. Insert basic
+        IEEE include: std_logic_1164.all. Add list of registers.
+        Arguments:
+            name	VHDL pacakge name
+        """
+        self.vhdlGen.wr_nl()
+        self.vhdlGen.write_comm_line(gap=0)
+        if (self.memMap != None):
+            print("Writing testbench addresses of '%s' register map" % self.memMap.name)
+            self.vhdlGen.write_comment("Memory map for: {}".format(
+                self.memMap.name), 0, small=True)
+        self.vhdlGen.write_gen_note()
 
-		self.vhdlGen.write_comm_line(gap=0)
-		self.vhdlGen.wr_nl()
-		
-		self.vhdlGen.create_includes("ieee", ["std_logic_1164.all"])
-		self.vhdlGen.wr_nl()
-		self.vhdlGen.create_includes("work", ["tb_reg_map_defs_pkg.all", "CAN_FD_register_map.all"])
+        self.vhdlGen.write_comm_line(gap=0)
+        self.vhdlGen.wr_nl()
 
-		self.vhdlGen.wr_nl()
-		self.vhdlGen.create_package(name)
-		self.vhdlGen.wr_nl()
+        self.vhdlGen.create_includes("ieee", ["std_logic_1164.all"])
+        self.vhdlGen.wr_nl()
+        self.vhdlGen.create_includes("work", ["tb_reg_map_defs_pkg.all", "CAN_FD_register_map.all"])
+
+        self.vhdlGen.wr_nl()
+        self.vhdlGen.create_package(name)
+        self.vhdlGen.wr_nl()
 
         # Write common types not used. Types hard-coded in extra package so that when
         # multiple packages are defined, there are no duplicities!
-		#self.write_cmn_types()
+        # self.write_cmn_types()
 
-		if (self.memMap):
-			self.write_mem_map_addr()
+        if (self.memMap):
+            self.write_mem_map_addr()
 
-		self.vhdlGen.commit_append_line(1)
+        self.vhdlGen.commit_append_line(1)

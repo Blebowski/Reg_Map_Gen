@@ -1,4 +1,5 @@
-################################################################################                                                     
+"""
+################################################################################
 ## 
 ## Register map generation tool
 ##
@@ -36,20 +37,13 @@
 ##		17.01.2020	Implemented the script
 ##
 ################################################################################
-
-import argparse
-import sys
-import time
-import importlib.util
-import os
-import inspect
-import math
+"""
 
 from .gen_lib import *
 from .ip_xact.vhdl_tb_addr_generator import VhdlTbAddrGenerator
 
 
-class VhdlTbAddrGeneratorWrapper():
+class VhdlTbAddrGeneratorWrapper:
 
     # File with license which should be placed to header of the all source code files
     licPath = ""

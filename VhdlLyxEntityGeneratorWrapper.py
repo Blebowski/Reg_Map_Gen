@@ -1,5 +1,6 @@
-################################################################################                                                     
-## 
+"""
+################################################################################
+##
 ## Register map generation tool
 ##
 ## Copyright (C) 2018 Ondrej Ille <ondrej.ille@gmail.com>
@@ -32,16 +33,8 @@
 ##      17.3.2019  First implementation
 ##
 ################################################################################
+"""
 
-import argparse
-import sys
-import time
-import importlib.util
-import os
-import inspect
-import math
-
-from .gen_lib import *
 from .doc_gen.vhdl_lyx_interface_gen import VhdlLyxEntityGenerator
 
 
@@ -88,7 +81,7 @@ class VhdlLyxEntityGeneratorWrapper():
 			self.gen.lyxGen.load_lyx_template(self.lyxTemplate)
 
 			in_f = open(cfg["vhdl_file"], 'r')
-			self.gen.set_vhdlFile(in_f)
+			self.gen.set_vhdl_file(in_f)
 
 			self.gen.generate_lyx_table_from_vhdl_entity()
 

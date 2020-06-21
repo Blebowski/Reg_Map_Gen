@@ -1,4 +1,5 @@
-################################################################################                                                     
+"""
+################################################################################
 ## 
 ## Register map generation tool
 ##
@@ -34,21 +35,14 @@
 ##      27.11.2018  Changed implementation to be a class
 ##
 ################################################################################
-
-import argparse
-import sys
-import time
-import importlib.util
-import os
-import inspect
-import math
+"""
 
 from .gen_lib import *
 from .ip_xact.vhdl_reg_map_generator import VhdlRegMapGenerator
-
 from shutil import copyfile
 
-class VhdlRegMapGeneratorWrapper():
+
+class VhdlRegMapGeneratorWrapper:
 
 	# File with license which should be placed to header of the all source code files
 	licPath = ""
