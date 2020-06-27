@@ -28,7 +28,6 @@
 ###############################################################################
 ##
 ##	 Base class for specific address Map generators.
-##   Two separate address maps are considered.
 ##
 ##	Revision history:
 ##		25.01.2018	First implementation
