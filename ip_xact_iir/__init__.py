@@ -17,3 +17,4 @@ from .iir_reset_type import *
 from .iir_top_object import *
 from .iir_value import *
 from .iir_vlnv import *
+from .iir_vendor_extension import *

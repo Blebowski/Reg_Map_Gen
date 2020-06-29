@@ -58,7 +58,7 @@ class IpXactParser:
     def parse_reference_value(node: Et.ElementTree, attribute_name) -> IirReferenceValue:
         for item in node:
             if item.tag == attribute_name:
-                return IirReferenceValue(uid=item.text)  # Reference will be linked later
+                return IirReferenceValue(item.text)  # Reference will be linked later
         return None
 
     @staticmethod
@@ -311,6 +311,62 @@ class IpXactParser:
         return iir_parameters
 
     @staticmethod
+    def parse_vendor_extension(node: Et.ElementTree) -> IirVendorExtension:
+        vendor_extension = IirVendorExtension(node.tag, node.text, node.attrib)
+        vendor_extension.children = IpXactParser.parse_vendor_extensions(node)
+        return vendor_extension
+
+    @staticmethod
+    def parse_vendor_extensions(node: Et.ElementTree) -> List[IirVendorExtension]:
+        vendor_extensions = []
+        for item in node:
+            vendor_extensions.append(IpXactParser.parse_vendor_extension(item))
+        return vendor_extensions
+
+    @staticmethod
+    def resolve_reference_parameter(reference_value: IirReferenceValue, parameters: List[
+                                    IirParameter]):
+        #print("Trying to resolve: {} {}".format(reference_value, reference_value.uuid))
+
+        for parameter in parameters:
+            if parameter.parameter_id == reference_value.uuid:
+                reference_value.value = parameter.value
+                print("Resolved reference value of: {} to parameter: {} with value: {}".format(
+                    reference_value.uuid, parameter.name, parameter.value.value))
+                return
+
+        # Discard UID of reference value because it was not found
+        reference_value.uuid = None
+
+    @staticmethod
+    def link_iir_object_parameters(iir_object: IirObject, parameters: List[IirParameter]):
+        for attribute, value in iir_object.__dict__.items():
+
+            # Resolve refernce value
+            if isinstance(value, IirReferenceValue):
+                IpXactParser.resolve_reference_parameter(value, parameters)
+                continue
+
+            # Nest on others from IIr_Object, basic types are ignored
+            if isinstance(value, IirObject) and (attribute is not "parent"):
+                IpXactParser.link_iir_object_parameters(value, parameters)
+
+            # Iterate over lists and if its element is Iir_Object -> nest
+            if isinstance(value, list):
+                for item in value:
+                    if isinstance(value, IirReferenceValue):
+                        IpXactParser.resolve_reference_parameter(value, parameters)
+                        continue
+                    if isinstance(item, IirObject):
+                        IpXactParser.link_iir_object_parameters(item, parameters)
+
+    @staticmethod
+    def link_hw_component_parameters(component: IirHwComponent):
+        for memory_map in component.memory_maps:
+            IpXactParser.link_iir_object_parameters(memory_map, component.parameters)
+        pass
+
+    @staticmethod
     def parse_hw_component(node: Et.ElementTree) -> IirHwComponent:
         author = None
         license = None
@@ -336,12 +392,16 @@ class IpXactParser:
                 reset_types = IpXactParser.parse_reset_types(item)
             if item.tag == "parameters":
                 parameters = IpXactParser.parse_parameters(item)
+            if item.tag == "vendorExtensions":
+                vendor_extensions = IpXactParser.parse_vendor_extensions(item)
             #TODO: XML Header not parsed. Is it IP-XACT standard?
 
         hw_component = IirHwComponent(vlnv, description, author, license)
         hw_component.set_memory_maps(memory_maps)
         hw_component.set_parameters(parameters)
         hw_component.set_reset_types(reset_types)
+        hw_component.set_vendor_extensions(vendor_extensions)
+        IpXactParser.link_hw_component_parameters(hw_component)
 
         return hw_component
 

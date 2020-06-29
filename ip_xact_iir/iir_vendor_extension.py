@@ -1,7 +1,6 @@
 """
     Internal Intermediate representation of IP-XACT.
-    IIR Reset - Value of an object given directly or as reference to other
-                object
+    IIR object - Base class for all objects
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this SW component and associated documentation files (the "Component"),
@@ -22,30 +21,25 @@
     DEALINGS IN THE COMPONENT.
 """
 
-from .iir_value import IirValue
+from typing import List
+
 from .iir_object import IirObject
 
 
-class IirReferenceValue(IirValue):
+class IirVendorExtension(IirObject):
 
-    # UUID of parameter that this value refers to
-    uuid: str = None
+    tag: str
+    text: str
+    attributes = None
 
-    # IIR object that parameter refers to
-    reference_object: IirObject = None
+    # Children can be arbitrary amount of levels of IIR_Object
+    children: List[IirObject]
 
-    def __init__(self, uuid, value=None, reference_object: IirObject = None):
-        super().__init__(value)
-        self.uuid = uuid
-
-        # If no value is specified, then set it to UUID. Thisway, if reference parameter is created
-        # with hard-coded value (no reference), it will get propagated to value and uuid too. In
-        # such case, uuid will be set to rubbish, this will be later cleared during link resolution.
-        if value is None:
-            self.value = uuid
-        else:
-            self.value = value
-        self.reference_object = reference_object
+    def __init__(self, tag, text=None, attrributes=None):
+        super().__init__()
+        self.tag = tag
+        self.text = text
+        self.attributes = attrributes
 
     def __str__(self):
-        return "IIR_REFERENCE_VALUE: {}".format(self.iir_id)
+        return "IIR_VENDOR_EXTENSION: " + str(self.iir_id)

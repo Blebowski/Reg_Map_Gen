@@ -30,6 +30,7 @@ from .iir_reset_type import IirResetType
 from .iir_named_object import IirNamedObject
 from .iir_parameter import IirParameter
 from .iir_vlnv import IirVlnv
+from .iir_vendor_extension import IirVendorExtension
 
 
 class IirHwComponent(IirTopObject, IirNamedObject):
@@ -37,6 +38,7 @@ class IirHwComponent(IirTopObject, IirNamedObject):
     parameters: List[IirParameter]
     reset_types: List[IirResetType]
     memory_maps: List[IirMemoryMap]
+    vendor_extensions: List[IirVendorExtension]
 
     def __init__(self, vlnv: IirVlnv, description=None, author=None, license=None,
                  xml_header=None, parent: IirObject = None):
@@ -61,6 +63,11 @@ class IirHwComponent(IirTopObject, IirNamedObject):
         self.parameters = parameters
         for parameter in parameters:
             parameter.parent = self
+
+    def set_vendor_extensions(self, vendor_extensions: List[IirVendorExtension]):
+        self.vendor_extensions = vendor_extensions
+        for vendor_extension in vendor_extensions:
+            vendor_extension.parent = self
 
 
 
