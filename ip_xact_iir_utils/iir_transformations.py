@@ -23,6 +23,7 @@
 
 import os
 import sys
+import re
 
 from enum import Enum
 
@@ -77,11 +78,8 @@ class IirTransformations(Enum):
             # Does not replace when name is suffix of other name. Does replace if separated by
             # white space, dot or bracket. This allows to have [] bitfield addressing
             if (attribute == "description") and (value is not None):
-                if (str(" " + original + " ") in value) or \
-                   (str(" " + original + "[") in value) or \
-                   (str(" " + original + "(") in value) or \
-                   (str(" " + original + ".") in value) or \
-                   (str(" " + original + "{") in value):
+                match_str = "( |(|)|{{|}}){}( |(|)|{{|}})".format(original)
+                if re.search(match_str, value) is not None:
                     iir_object.__setattr__(attribute, value.replace(original, replacement))
 
     @staticmethod
