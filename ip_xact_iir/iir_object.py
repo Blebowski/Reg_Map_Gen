@@ -40,7 +40,7 @@ class IirObject:
     def __str__(self):
         return "IIR_OBJECT: " + str(self.iir_id)
 
-    def print(self, nest=True, indent=0, file=None):
+    def print(self, nest=True, indent=0):
         print(" " * indent + str(self))
         indent += 2
         ind_str = " " * indent
@@ -56,7 +56,7 @@ class IirObject:
             if isinstance(attr, IirObject):
                 if nest:
                     print(ind_str + attribute.capitalize() + ":")
-                    attr.print(nest, indent + 2, file)
+                    attr.print(nest, indent + 2)
                 else:
                     print("{}{}: {}".format(ind_str, attribute.capitalize(), value))
                 continue

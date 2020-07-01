@@ -24,33 +24,105 @@
 import os
 import sys
 
+from enum import Enum
+
 proj_dir = os.path.abspath(os.path.join(__file__, ".."))
 sys.path.append(proj_dir)
 
 from ip_xact_iir import *
 
 
-class IirTransformations:
+class IirTransformations(Enum):
+
+    underscore_to_camel_case = 0
+    camel_case_to_underscore = 1
 
     @staticmethod
-    def convert_underscore_to_cammel_case(iir_object: IirObject, recurse=False):
+    def __underscore_to_camel(input) -> str:
+        in_split = str(input).split("_")
+        res = ""
+        for val in in_split:
+            res += val.capitalize()
+        return res
+
+    @staticmethod
+    def __camel_to_underscore(input) -> str:
+        res = ""
+        for character in str(input):
+            if character.isUpper() and character != str(input)[0]:
+                res += "_{}".format(character)
+            else:
+                res += character
+        return res.lower()
+
+    @staticmethod
+    def __convert_descriptions(iir_object: IirObject, original: str, replacement: str) -> str:
         for attribute, value in iir_object.__dict__.items():
 
-            # Skip reference values -> Not to screq UID
-            if isinstance(iir_object, IirReferenceValue):
+            # Skip reference values, parent
+            if isinstance(value, IirReferenceValue) or attribute == "parent":
                 continue
 
-            # Recurse on other attributes
-            if recurse and isinstance(iir_object, IirObject) and attribute != "parent" and :
-                IirTransformations.convert_underscore_to_cammel_case(iir_object, True)
+            # Recurse on other IIrObjects
+            if isinstance(value, IirObject):
+                IirTransformations.__convert_descriptions(value, original, replacement)
 
-            # Convert Name
-            if attribute == "name":
-                value_split = value.lower().split("_")
-                res = ""
-                for it in value_split:
-                    res += it.capitalize()
-                value = value_split
+            # Go through lists and recurse on Iir Objects
+            if isinstance(value, list):
+                for item in value:
+                    if isinstance(item, IirObject):
+                        IirTransformations.__convert_descriptions(item, original, replacement)
 
-            # TODO: We should walk through descriptions and replace exact match of the string by
-            #       the value post conversion!
+            # Replace text in description attribute. Ignore if there is no white space before.
+            # Does not replace when name is suffix of other name. Does replace if separated by
+            # white space, dot or bracket. This allows to have [] bitfield addressing
+            if (attribute == "description") and (value is not None):
+                if (str(" " + original + " ") in value) or \
+                   (str(" " + original + "[") in value) or \
+                   (str(" " + original + "(") in value) or \
+                   (str(" " + original + ".") in value) or \
+                   (str(" " + original + "{") in value):
+                    iir_object.__setattr__(attribute, value.replace(original, replacement))
+
+    @staticmethod
+    def transform(iir_object: IirObject, iir_top_object: IirObject, transformation,
+                  attribute_name, iir_type_to_convert=IirObject, iir_convert_description: bool =
+                  False):
+        for attribute, value in iir_object.__dict__.items():
+
+            # Skip reference values -> Not to screw UID
+            if isinstance(value, IirReferenceValue) or attribute == "parent":
+                continue
+
+            # Recurse on other IirObjects
+            if isinstance(value, IirObject):
+                IirTransformations.transform(value, iir_top_object, transformation,
+                                             attribute_name, iir_type_to_convert,
+                                             iir_convert_description)
+
+            # Go through lists and recurse on Iir Objects
+            if isinstance(value, list):
+                for item in value:
+                    if isinstance(item, IirObject):
+                        IirTransformations.transform(item, iir_top_object, transformation,
+                                                     attribute_name, iir_type_to_convert,
+                                                     iir_convert_description)
+
+            # Check if object is of desired type (by default it is IIrObject)
+            if not isinstance(iir_object, iir_type_to_convert):
+                continue
+
+            # Transform if it is attribute we were looking for and fix descriptions in whole tree
+            if attribute == attribute_name:
+
+                if transformation == IirTransformations.underscore_to_camel_case:
+                    new_value = IirTransformations.__underscore_to_camel(value)
+                elif transformation == IirTransformations.camel_case_to_underscore:
+                    new_value = IirTransformations.__camel_to_underscore(value)
+                else:
+                    print("ERROR: Invalid transformation type: {}".format(transformation))
+                    break
+
+                if iir_convert_description:
+                    IirTransformations.__convert_descriptions(iir_top_object, value, new_value)
+                iir_object.__setattr__(attribute, new_value)

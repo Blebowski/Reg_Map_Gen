@@ -22,6 +22,8 @@
     DEALINGS IN THE COMPONENT.
 """
 
+import sys
+
 from ip_xact_iir_utils import *
 
 
@@ -29,6 +31,17 @@ if __name__ == "__main__":
 
     parser = IpXactParser()
     hw_component = parser.parse_ip_xact(
-        "../../spec/CTU/ip/CAN_FD_IP_Core/2.1/CAN_FD_IP_Core.2.1.xml")
+        "../CTU-CAN-FD/spec/CTU/ip/CAN_FD_IP_Core/2.1/CAN_FD_IP_Core.2.1.xml")
 
-    hw_component.print(True)
+    fd_before = open("before_conversion", 'w')
+    sys.stdout = fd_before
+    hw_component.print(True, 0)
+
+    IirTransformations.transform(hw_component, hw_component,
+                                 IirTransformations.underscore_to_camel_case, "name",
+                                 IirRegister, True)
+
+    fd_after = open("after_conversion", 'w')
+    sys.stdout = fd_after
+    hw_component.print(True, 0)
+
