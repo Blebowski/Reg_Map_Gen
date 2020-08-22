@@ -899,7 +899,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 			self.hdlGen.wr_nl()
 
 		wrk_pkgs = [self.memMap.name.lower() + "_pkg.all", "cmn_reg_map_pkg.all"]
-		self.hdlGen.create_includes("work", wrk_pkgs)
+		self.hdlGen.create_includes("ctu_can_fd_rtl", wrk_pkgs)
 
 		# Create entity definition
 		entity = self.create_reg_block_template(block)
