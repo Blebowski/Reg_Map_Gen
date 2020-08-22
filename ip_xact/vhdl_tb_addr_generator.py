@@ -221,7 +221,9 @@ class VhdlTbAddrGenerator(IpXactAddrGenerator):
 		
 		self.vhdlGen.create_includes("ieee", ["std_logic_1164.all"])
 		self.vhdlGen.wr_nl()
-		self.vhdlGen.create_includes("work", ["tb_reg_map_defs_pkg.all", "CAN_FD_register_map.all"])
+
+		self.vhdlGen.create_includes("ctu_can_fd_tb", ["tb_reg_map_defs_pkg.all"])
+		self.vhdlGen.create_includes("ctu_can_fd_rtl", ["CAN_FD_register_map.all"])
 
 		self.vhdlGen.wr_nl()
 		self.vhdlGen.create_package(name)
