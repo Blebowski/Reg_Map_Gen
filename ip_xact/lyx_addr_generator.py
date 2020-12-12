@@ -252,7 +252,7 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 											reg.access))
 
 		# Address
-		self.lyxGen.write_layout_text("Description", "Address: {}\n".format(
+		self.lyxGen.write_layout_text("Description", "Offset: {}\n".format(
 									"0x{:X}".format(reg.addressOffset +
 										block.baseAddress)))
 
