@@ -34,6 +34,7 @@
 
 from ..src.common.CodeWriter import CodeWriter
 import os
+import filecmp
 
 freakishly_long_comment = (
     "Permission is hereby granted, free of charge, to any person obtaining a copy of this SW " 
@@ -43,14 +44,10 @@ freakishly_long_comment = (
     "to whom the Component is furnished to do so, subject to the following conditions: "
 )
 
+test_file = "test_code_writer.c"
 
 def test_code_writer():
-    curr_dir = os.path.dirname(os.path.realpath(__file__))
-    test_out_dir = os.path.join(curr_dir, "test_output")
-    if not os.path.exists(test_out_dir):
-        os.makedirs(test_out_dir)
-
-    cw = CodeWriter(os.path.join(test_out_dir, "example.c"))
+    cw = CodeWriter(test_file)
 
     # Test Small comment
     cw.write_comment("Example of small comment", small=True)
@@ -91,6 +88,12 @@ def test_code_writer():
     cw.pop_item()
 
     del cw
+    
+    # Compare generated file with reference
+    reference_file = os.path.join("test_outputs", "test_code_writer.c")
+    print(reference_file)
+    assert filecmp.cmp(reference_file, test_file, shallow=False)
+    os.remove(test_file)
 
 
 if __name__ == "__main__":

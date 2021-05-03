@@ -1,3 +1,2 @@
 # Ignore Python generated classes
 __pycache__*
-test/test_output/*
