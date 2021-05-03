@@ -32,6 +32,7 @@
 ################################################################################
 """
 
+
 class CodeWriter:
 
     # File object in which code is generated
@@ -79,7 +80,6 @@ class CodeWriter:
                 curr_line = word + " "
 
         ret_val.append(curr_line)
-        print(ret_val)
         return ret_val
 
     def __generate_indent(self):

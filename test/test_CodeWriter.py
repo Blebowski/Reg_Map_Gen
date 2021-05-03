@@ -33,6 +33,7 @@
 """
 
 from ..src.common.CodeWriter import CodeWriter
+import os
 
 freakishly_long_comment = (
     "Permission is hereby granted, free of charge, to any person obtaining a copy of this SW " 
@@ -44,7 +45,12 @@ freakishly_long_comment = (
 
 
 def test_code_writer():
-    cw = CodeWriter("example.c")
+    curr_dir = os.path.dirname(os.path.realpath(__file__))
+    test_out_dir = os.path.join(curr_dir, "test_output")
+    if not os.path.exists(test_out_dir):
+        os.makedirs(test_out_dir)
+
+    cw = CodeWriter(os.path.join(test_out_dir, "example.c"))
 
     # Test Small comment
     cw.write_comment("Example of small comment", small=True)
