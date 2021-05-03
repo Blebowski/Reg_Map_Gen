@@ -46,6 +46,7 @@ freakishly_long_comment = (
 
 test_file = "test_code_writer.c"
 
+
 def test_code_writer():
     cw = CodeWriter(test_file)
 
