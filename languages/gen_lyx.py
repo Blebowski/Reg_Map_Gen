@@ -174,7 +174,7 @@ class LyxGenerator(BaseGenerator):
 		"""
 		if (char in text):
 			beg_ins = "\\begin_inset".__repr__().strip("'")
-			nl_ins_str = "\n{} Newline newline\n\end_inset\n\n".format(beg_ins)
+			nl_ins_str = "\n{} Newline newline\n\\\end_inset\n\n".format(beg_ins)
 			return re.sub("\\" + char, nl_ins_str + char, text)
 		else:
 			return text
