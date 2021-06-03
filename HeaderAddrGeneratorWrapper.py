@@ -50,6 +50,7 @@ import math
 
 from .gen_lib import *
 from .ip_xact.h_addr_generator import HeaderAddrGenerator
+from .ip_xact.kern_h_addr_generator import KernHeaderAddrGenerator
 
 class HeaderAddrGeneratorWrapper():
 
@@ -72,30 +73,34 @@ class HeaderAddrGeneratorWrapper():
 
     # Output where to write the VHDL package.
     outFile = ""
-	
+
+    # Use kernel compliant wrapper or not
+    use_kern_style = True
+
     def do_update(self):
-	    with open(self.xactSpec) as f:
-		    name = None
-		    offset = 0
-		    addrMap = None
-		    fieldMap = None
+        with open(self.xactSpec) as f:
+            name = None
+            offset = 0
             
-		    component = Component()
-		    component.load(f)
-		    
-		    with open_output(self.outFile) as of:
-			    
-			    headerGen = HeaderAddrGenerator(component, self.memMap, self.wordWidth)
-			    headerGen.set_of(of)
-			    
-			    if (self.licPath != ""):
-				    lic_text = load_license(self.licPath)
-				    write_license(lic_text, '*', of)
-				    
-			    headerGen.prefix = "ctu_can_fd"
-			    headerGen.create_addrMap_package(self.headName)
-			    
-			    headerGen.commit_to_file()
+            component = Component()
+            component.load(f)
+
+            with open_output(self.outFile) as of:
+                header_gen = None
+                if self.use_kern_style:
+                    header_gen = KernHeaderAddrGenerator(component, self.memMap, self.wordWidth)
+                else:
+                    header_gen = HeaderAddrGenerator(component, self.memMap, self.wordWidth)
+                header_gen.set_of(of)
+
+                if self.licPath != "":
+                    lic_text = load_license(self.licPath)
+                    write_license(lic_text, '*', of)
+
+                header_gen.prefix = "ctu_can_fd"
+                header_gen.create_addrMap_package(self.headName)
+
+                header_gen.commit_to_file()
 
     if __name__ == '__main__':
         self.do_update()

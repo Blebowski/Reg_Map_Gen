@@ -333,8 +333,23 @@ class HeaderGenerator(LanBaseGenerator):
 		"""
 		for include in includeList:
 			self.__wr_line("#include {}\n")
-			
-			
 
-	
+	def write_macro(self, name, value):
+		"""
+		Create C macro
+		:param name: Name of the macro
+		:param value: definition of the macro
+		"""
+		self.__wr_line("#define {} {}\n".format(name, value))
+
+	def write_include(self, file_name, local=False):
+		"""
+		Create include clause
+		:param file: File to include
+		:param local: True - Use "" for includes, False, use <>
+		"""
+		if local:
+			self.__wr_line('#include "{}"\n'.format(file_name))
+		else:
+			self.__wr_line('#include <{}>\n'.format(file_name))
 		
