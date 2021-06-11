@@ -75,7 +75,7 @@ class HeaderAddrGeneratorWrapper():
     outFile = ""
 
     # Use kernel compliant wrapper or not
-    use_kern_style = True
+    use_kern_style = False
 
     def do_update(self):
         with open(self.xactSpec) as f:
