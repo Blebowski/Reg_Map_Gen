@@ -74,6 +74,24 @@ class KernHeaderAddrGenerator(IpXactAddrGenerator):
 
 		return regGroups
 
+	def write_mem_map_addr_enum(self):
+		"""
+		Write addresses of registers within "memBlock" IP-XACT memory block as
+		enum to generator output.
+		"""
+		cmnt = "{} memory map".format(self.memMap.name)
+		self.headerGen.write_comment(cmnt, 0, small=True)
+		decls = []
+
+		for block in self.memMap.addressBlock:
+			for reg in sorted(block.register, key=lambda a: a.addressOffset):
+				decls.append(LanDeclaration(("CTUCANFD_" + reg.name).upper(),
+											value=reg.addressOffset + block.baseAddress,
+											intType="enum"))
+
+		self.headerGen.create_enum(self.prefix.lower() + "_" + self.memMap.name.lower(),
+								   decls)
+
 	def write_reg_group(self, reg_group):
 		# Write comment with memory word
 		comment = ""
@@ -90,13 +108,13 @@ class KernHeaderAddrGenerator(IpXactAddrGenerator):
 			# Append register name to the union name
 			reg_base_name += reg.name.upper()
 			break
-		reg_base_name = "CTUCANFD_REG_{}".format(reg_base_name)
+		reg_base_name = "REG_{}".format(reg_base_name)
 
 		# Go through each register and write fields
 		for (j, reg) in enumerate(reg_group):
-			if j == 0:
+			#if j == 0:
 				# Write address
-				self.headerGen.write_macro(reg_base_name, hex(reg.addressOffset).upper())
+				#self.headerGen.write_macro(reg_base_name, hex(reg.addressOffset).upper())
 
 			for (i, field) in enumerate(sorted(reg.field, key=lambda a: a.bitOffset)):
 				field_name = "{}_{}".format(reg_base_name, field.name)
@@ -109,6 +127,8 @@ class KernHeaderAddrGenerator(IpXactAddrGenerator):
 					field_val = "BIT({})".format(offset)
 				else:
 					field_val = "GEN_MASK({}, {})".format(offset + field.bitWidth - 1, offset)
+
+
 				self.headerGen.write_macro(field_name, field_val)
 
 		self.headerGen.wr_nl()
@@ -147,6 +167,12 @@ class KernHeaderAddrGenerator(IpXactAddrGenerator):
 		self.headerGen.write_include("linux/bits.h")
 		self.headerGen.wr_nl()
 
+		# Write memory map address enum
+		if self.memMap:
+			print("Writing addresses of '%s' register map" % self.memMap.name)
+			self.write_mem_map_addr_enum()
+
+		# Write memory map fields
 		if self.memMap:
 			print("Writing kernel header of '%s' register map" % self.memMap.name)
 			self.write_memory_map()
