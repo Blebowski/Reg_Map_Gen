@@ -121,12 +121,12 @@ class KernHeaderAddrGenerator(IpXactAddrGenerator):
 
 				offset = field.bitOffset + (reg.addressOffset % 4) * 8
 				# Single fields -> BIT(INDEX)
-				# Multiple fields -> GEN_MASK(HIGH, LOW)
+				# Multiple fields -> GENMASK(HIGH, LOW)
 				field_val = None
 				if field.bitWidth == 1:
 					field_val = "BIT({})".format(offset)
 				else:
-					field_val = "GEN_MASK({}, {})".format(offset + field.bitWidth - 1, offset)
+					field_val = "GENMASK({}, {})".format(offset + field.bitWidth - 1, offset)
 
 
 				self.headerGen.write_macro(field_name, field_val)
