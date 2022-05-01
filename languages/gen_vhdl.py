@@ -376,7 +376,10 @@ class VhdlGenerator(LanBaseGenerator):
 		"""
 		Format declaration of vector range.
 		"""
-		return "{}({} {} {})".format(signalName, u_ind, direction, l_ind);
+		if (u_ind == l_ind):
+			return "{}({})".format(signalName, l_ind)
+
+		return "{}({} {} {})".format(signalName, u_ind, direction, l_ind)
 
 
 	def format_logic_op(self, operand_lst, logic_op):

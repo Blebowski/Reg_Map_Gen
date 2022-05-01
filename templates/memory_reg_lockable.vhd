@@ -38,7 +38,7 @@ Library ieee;
 USE IEEE.std_logic_1164.all;
 USE IEEE.numeric_std.ALL;
 
-entity memory_reg is
+entity memory_reg_lockable is
     generic(
 
         -- Width of register data
@@ -68,6 +68,11 @@ entity memory_reg is
         signal data_in                :in   std_logic_vector(data_width - 1 downto 0);
         signal write                  :in   std_logic;
         signal cs                     :in   std_logic;
+        
+        ------------------------------------------------------------------------
+        -- Lock control
+        ------------------------------------------------------------------------
+        signal lock                   :in   std_logic;
 
         ------------------------------------------------------------------------
         -- Register outputs
@@ -75,10 +80,10 @@ entity memory_reg is
         signal reg_value              :out  std_logic_vector(data_width - 1 downto 0)
     );
              
-end entity memory_reg;
+end entity memory_reg_lockable;
 
 
-architecture rtl of memory_reg is
+architecture rtl of memory_reg_lockable is
 
     ---------------------------------------------------------------------------
     -- Create new constants for reset value, implemented etc.
@@ -99,14 +104,14 @@ architecture rtl of memory_reg is
     signal reg_value_r          :   std_logic_vector(data_width - 1 downto 0);
 
     -- Write enable
-    signal wr_en               :   std_logic;
+    signal wr_en                :   std_logic_vector(data_width / 8 - 1 downto 0);
 
 begin
 
     ----------------------------------------------------------------------------
-    -- Write enable
+    -- -- Write enable
     ----------------------------------------------------------------------------    
-    wr_en <= write and cs;
+    wr_en <= write and cs and (not lock);
 
     ----------------------------------------------------------------------------
     -- Register instance
@@ -133,16 +138,16 @@ begin
             
             
         --------------------------------------------------------------------
-        -- Clear register (no DFF - combinatorial only). When access
+        -- Autoclear register (no DFF - combinatorial only). When access
         -- is made, put data to output, reset value otherwise.
         --------------------------------------------------------------------
-        reg_autoclear_gen : if (modified_write_val_clear) generate
+        reg_clear_gen : if (modified_write_val_clear) generate
             
             reg_value_r(i) <= data_in(i) when wr_select_expanded(i) = '1'
                                          else
                               reset_value_i(i);
 
-        end generate reg_autoclear_gen;
+        end generate reg_clear_gen;
 
 
     end generate bit_gen;
