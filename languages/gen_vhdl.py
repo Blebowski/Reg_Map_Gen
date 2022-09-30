@@ -1,5 +1,5 @@
-################################################################################                                                     
-## 
+################################################################################
+##
 ## Register map generation tool
 ##
 ## Copyright (C) 2018 Ondrej Ille <ondrej.ille@gmail.com>
@@ -25,9 +25,9 @@
 ###############################################################################
 
 ###############################################################################
-##   
-##   VHDL Generator Class for PyXact parsed obejects from IP-Xact specification 
-##	
+##
+##   VHDL Generator Class for PyXact parsed obejects from IP-Xact specification
+##
 ##	Revision history:
 ##		16.01.2018	Implemented the script
 ##
@@ -48,16 +48,16 @@ from pyXact_generator.languages.gen_lan_base import LanBaseGenerator
 from pyXact_generator.languages.declaration import LanDeclaration
 
 class VhdlGenerator(LanBaseGenerator):
-	
-	
+
+
 	def __init__(self):
 		super().__init__()
 		self.supportedTypes = ["std_logic", "natural"]
 		self.commentSign = "-"
-	
+
 ################################################################################
 #	LanBaseGenerator inherited function
-################################################################################		
+################################################################################
 
 	def __wr_line(self, line):
 		super(VhdlGenerator, self).wr_line(line)
@@ -71,10 +71,10 @@ class VhdlGenerator(LanBaseGenerator):
 
 ################################################################################
 #	VHDL syntax specific generation functions
-################################################################################		
+################################################################################
 
 	def write_comm_line(self, gap=2):
-		""" 
+		"""
 		Write VHDL comment line in format: (gap)---- aligned to 80 characters
 		Arguments:
 			gap		 Number of tabs before the comment line
@@ -99,7 +99,7 @@ class VhdlGenerator(LanBaseGenerator):
 		if (logicOp == self.LogicOp.OP_ADD):
 			return "+"
 		if (logicOp == self.LogicOp.OP_SUB):
-			return "-"	
+			return "-"
 		if (logicOp == self.LogicOp.OP_MUL):
 			return "*"
 		if (logicOp == self.LogicOp.OP_DIV):
@@ -108,7 +108,7 @@ class VhdlGenerator(LanBaseGenerator):
 			return " not "
 
 	def write_comment(self, input, gap=0, caption=None, small=False, wrapLine=True):
-		""" 
+		"""
 		Write VHDL comment in format:
 			--------------------------------------------------------------------
 			-- caption
@@ -124,11 +124,11 @@ class VhdlGenerator(LanBaseGenerator):
 		"""
 		if (small == False):
 			self.write_comm_line(gap)
-		
+
 		if (caption != None):
-			self.__wr_line(" " * gap + self.commentSign + self.commentSign + 
+			self.__wr_line(" " * gap + self.commentSign + self.commentSign +
 								" {}\n{}\n".format(caption," " *gap+"--"))
-		
+
 		if (wrapLine):
 			lines = split_string(input, 75)
 			for line in lines:
@@ -136,7 +136,7 @@ class VhdlGenerator(LanBaseGenerator):
 								line))
 		else:
 			self.__wr_line('{}{} {}'.format(" " * gap, self.commentSign * 2, input))
-		
+
 		if (small == False):
 			self.write_comm_line(gap)
 
@@ -148,7 +148,7 @@ class VhdlGenerator(LanBaseGenerator):
 										0, small=small)
 
 	def create_includes(self, library, includeList):
-		""" 
+		"""
 		Create VHDL include list from a library.
 		Arguments:
 			includeList		List of includes from given library
@@ -156,7 +156,7 @@ class VhdlGenerator(LanBaseGenerator):
 		if (includeList == None):
 			return False
 
-		self.__wr_line("Library {};\n".format(library))	
+		self.__wr_line("Library {};\n".format(library))
 		for include in includeList:
 			self.__wr_line("use {}.{};\n".format(library, include))
 
@@ -176,7 +176,7 @@ class VhdlGenerator(LanBaseGenerator):
 		# If width is multiple of 4 -> use hex format, binary otherwise
 		if (decl.bitWidth % 4 == 0):
 			fmt = ':0{}x'.format(math.ceil(float(decl.bitWidth/4)))
-			hPref = 'x' 
+			hPref = 'x'
 		else:
 			fmt = ':0{}b'.format(math.ceil(float(decl.bitWidth)))
 			hPref = ''
@@ -192,7 +192,7 @@ class VhdlGenerator(LanBaseGenerator):
 			for binChr in binStr[1:-1]:
 				if (binChr != binStr[1]):
 					isBinaryEq = False
-			
+
 			if (isBinaryEq):
 				strVal = "(OTHERS => '{}')".format(binStr[1])
 
@@ -214,7 +214,7 @@ class VhdlGenerator(LanBaseGenerator):
 
 
 	def format_std_log_decl_val(self, decl):
-		""" 
+		"""
 		Create VHDL declaration of std_logic or std_logic_vector!
 		CAN be used for declaration of signal, constant, generic, IO
 		port of entity or element of VHDL record.
@@ -235,7 +235,7 @@ class VhdlGenerator(LanBaseGenerator):
 
 
 	def format_std_log_decl_type(self, decl):
-		""" 
+		"""
 		Formats "type" specifier for std_logic and std_logic_vector.
 		types. Supports Integer and String Bitwidths.
 			decl		Declaration object
@@ -248,21 +248,25 @@ class VhdlGenerator(LanBaseGenerator):
 				strType += "_vector"
 			strType += "({} downto {})".format(decl.upBound, decl.lowBound)
 
-		# If only numeric bitWidth is given, use it and go till zero 
-		elif (str(decl.bitWidth).isdigit() and decl.bitWidth > 1):
-			if (decl.type == "std_logic"):
-				strType += "_vector"
-			strType += "({} downto 0)".format(decl.bitWidth - 1)
+		# If only numeric bitWidth is given, use it and go till zero
+		elif (str(decl.bitWidth).isdigit()):
+			if (decl.type == "std_logic_vector"):
+				strType = "std_logic_vector({} downto 0)".format(decl.bitWidth - 1)
+			elif (decl.bitWidth > 1):
+				if (decl.type == "std_logic"):
+					strType += "_vector"
+				strType += "({} downto 0)".format(decl.bitWidth - 1)
+
 
 		# If digit is 0 -> nothing is needed we keep std_logic
-		elif (decl.bitWidth == 1):			
+		elif (decl.bitWidth == 1):
 			return strType
 
 		# If nothing is specified, we don't know how to format the vector ->
 		# FUCK IT!
 		else:
 			print("WARNING: No std_logic_vector range! Assuming without range.")
-			
+
 		return strType
 
 
@@ -359,7 +363,7 @@ class VhdlGenerator(LanBaseGenerator):
 		newLineChar = ""
 		if (len(pref) + len(post) > 80 and decl.wrap):
 			newLineChar = "\n                "
-		
+
 		self.__wr_line(" " * decl.gap + pref + newLineChar + post)
 		return True
 
@@ -436,7 +440,7 @@ class VhdlGenerator(LanBaseGenerator):
 			lst = decls
 		elif (type(decls) == dict):
 			for key, value in decls.items():
-				lst.append(value)			
+				lst.append(value)
 
 		for decl in lst:
 			decl.alignLen = alignLen
@@ -452,7 +456,7 @@ class VhdlGenerator(LanBaseGenerator):
 		Arguments:
 			decl     Declaration object
 			specDir  If Direction should be specified in the connection
-				     in VHDL comment   
+				     in VHDL comment
 		"""
 		portDelim = ""
 		if (decl.addSemicoln):
@@ -470,7 +474,7 @@ class VhdlGenerator(LanBaseGenerator):
 
 
 	def create_package(self, name):
-		""" 
+		"""
 		Create VHDL package.
 		Arguments:
 			name		name of the package
@@ -480,7 +484,7 @@ class VhdlGenerator(LanBaseGenerator):
 
 
 	def create_structure(self, name, decls, gap=0):
-		""" 
+		"""
 		Create VHDL record.
 		Arguments:
 			decls		Declaration structures
@@ -495,7 +499,7 @@ class VhdlGenerator(LanBaseGenerator):
 
 
 	def create_enum(self, name, decls, gap=0):
-		""" 
+		"""
 		Create VHDL enum.
 		Arguments:
 			decls		Declaration structures
@@ -515,9 +519,9 @@ class VhdlGenerator(LanBaseGenerator):
 
 	def write_ports_or_declarations(self, decl, decls, isInstance):
 		"""
-        Writes Dictionary of ports or declarations. 
+        Writes Dictionary of ports or declarations.
         Arguments:
-			decl		Declaration object of entity for which 
+			decl		Declaration object of entity for which
             decls       Declarations List (VhdlCompDeclaration)
             isInstance  "True" indicates ports should be written.
         """
@@ -536,7 +540,7 @@ class VhdlGenerator(LanBaseGenerator):
 
 	def format_entity_decl(self, decl, base_indent=4, alignLen=30):
 		"""
-		Format declaration of entity or architecture with increasing indent for 
+		Format declaration of entity or architecture with increasing indent for
 		"""
 		if (decl.intType != "entity" and decl.intType != "architecture"):
 			print("ERROR: Unsupported declaration type:" + decl.intType + \
@@ -558,7 +562,7 @@ class VhdlGenerator(LanBaseGenerator):
 		Arguments:
 			decl        Declaration object (VhdlCompDeclaration)
 			specDir     If Direction should be specified in the connection
-					    in VHDL comment   
+					    in VHDL comment
 		"""
 		titleStr = ["generic {}(\n", "port {}(\n"]
 		mapSuf = ""
@@ -634,7 +638,7 @@ class VhdlGenerator(LanBaseGenerator):
         Arguments:
             result		Name of resulting signal
             signals		List with original signal names
-			gate		String with gate function     
+			gate		String with gate function
         """
 		gStr = " " * gap
 		line = gStr+result+" <= "+signals[0]+" "+ gate+" "+signals[1]+";\n"
@@ -705,7 +709,7 @@ class VhdlGenerator(LanBaseGenerator):
 	def is_valid_dir(self, direction):
 		"""
 		Checks if specified direction is valid in VHDL.
-		Accepts: in, out, inout, buffer 
+		Accepts: in, out, inout, buffer
 		"""
 		acceptDirs = ["in", "out", "buffer", "inout"]
 		for acceptDir in acceptDirs:
@@ -732,7 +736,7 @@ class VhdlGenerator(LanBaseGenerator):
 		object is returned.
 		Each line must start with 'signal' for port declarations, or 'constant'
 		for generic declarations.
-		
+
 		"""
 		decl = LanDeclaration("new", value="")
 		#decl.alignRight = False
@@ -744,7 +748,7 @@ class VhdlGenerator(LanBaseGenerator):
 		wrds = cmn_re.findall(line)
 
 		# Allow only signal and constant prefixes
-		if (len(wrds) > 2 and 
+		if (len(wrds) > 2 and
 			(wrds[0] == "signal" or wrds[0] == "constant")):
 			decl.specifier = wrds[0]
 		else:
@@ -769,14 +773,14 @@ class VhdlGenerator(LanBaseGenerator):
 
 		# Process std_logic_vector specially to determine range. Support
 		# only downto, we don't need to be too generic
-		#print("DEEEECL")				
+		#print("DEEEECL")
 		#print(decl.name)
 		#print(decl.type)
 		#print("\n")
 		if (decl.type == "std_logic_vector"):
 			stdv_re = re.compile("\([ ]*.+ downto .*[ ]*\)")
 			rng_spec = stdv_re.findall(line)
-			
+
 			# Skip vectors without range (e.g. generics)
 			if (len(rng_spec) == 0):
 				return decl
@@ -804,7 +808,7 @@ class VhdlGenerator(LanBaseGenerator):
 		must be explicitly specified. On each port "signal" must be
 		explicitly specified. Direction must be specified on each signal!
         Parsing stops upon "architecture" definition start.
-		Return declaration object of parsed entity. 
+		Return declaration object of parsed entity.
 		Arguments:
 			TODO
 		"""
@@ -816,12 +820,12 @@ class VhdlGenerator(LanBaseGenerator):
 
 		# Entity name parser
 		ent_re = re.compile("^[ ]*entity[ ]*[\w]+[ ]*is$")
-		
+
 		# Architecture parser
 		# Upon start of architecture parsing is finished, otherwise internal
 		# signals would be parsed too!
 		architecture_re = re.compile("^[ ]*architecture[ ]+[\w]+[ ]+of[ ]+[\w]+[ ]+is[ ]*$")
- 	
+
 		entity = LanDeclaration("name", value="")
 		entity.intType = "entity"
 
@@ -838,10 +842,10 @@ class VhdlGenerator(LanBaseGenerator):
 			if (ent_res):
 				mtch = re.compile("[\w]+").findall(line)
 				entity.name = mtch[1]
-			
+
 			# Parse ports or generics
-			port_or_gen = self.parse_gen_or_port(line)			
-			if (port_or_gen == None):	
+			port_or_gen = self.parse_gen_or_port(line)
+			if (port_or_gen == None):
 				continue
 
 			if (port_or_gen.specifier == "signal"):

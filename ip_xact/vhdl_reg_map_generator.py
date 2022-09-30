@@ -1,5 +1,5 @@
-################################################################################                                                     
-## 
+################################################################################
+##
 ## Register map generation tool
 ##
 ## Copyright (C) 2018 Ondrej Ille <ondrej.ille@gmail.com>
@@ -80,7 +80,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 
 
 	def commit_to_file(self):
-		""" 
+		"""
 		Commit the generator output into the output file.
 		"""
 		for line in self.hdlGen.out :
@@ -92,7 +92,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 	def create_reg_ports(self, block, signDict):
 		"""
 		Creates declarations for Output/Input ports of an entity which
-		correspond to values Written / Read  to / from registers. 
+		correspond to values Written / Read  to / from registers.
 		Declarations have following format:
 			signal <block_name>_in   : in <block_name>_in_t
 			signal <block_name>_out  : in <block_name>_out_t
@@ -100,7 +100,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		"""
 		if (not checkIsDict(signDict)):
 			return
-			
+
 		reg_ports = ["out", "in"]
 
 		for reg_port in reg_ports:
@@ -224,7 +224,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		signDict["read_mux_ena"].bitWidth = self.wrdWidthByte
 		signDict["read_mux_ena"].specifier = "signal"
 
-	
+
 	def create_internal_decls(self, block, signDict):
 		"""
 		Create declarations of internal signals of architecture of register
@@ -239,14 +239,14 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 			return;
 
 		# Create output of address decoder
-		self.create_wr_reg_sel_decl(block, signDict) 
+		self.create_wr_reg_sel_decl(block, signDict)
 
 		# Create address vector input to address decoder
 		self.create_addr_vect_decl(block, signDict)
 
 		# Create data mux input signal (long logic vector)
 		self.create_read_data_mux_in_decl(block, signDict)
-		
+
 		# Create data mask signal for read multiplextor
 		self.create_read_data_mask_n_decl(block, signDict)
 
@@ -261,80 +261,48 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		self.create_write_en_int_decl(signDict)
 
 
-	def append_reg_byte_val(self, block, reg, byte_ind, read_wrd):
-		"""
-		Append name of a register if it is located on a given byte within a
-		memory word.
-		Returns:
-			[pad_zeroes, read_wrd]
-			pad_zeroes - If zeores should be padded instead of this register
-			read_wrd   - Appended value of word value
-		"""
-		reg_offset = reg.addressOffset % self.wrdWidthByte
-		reg_bytes = reg.size / 8
-
-		# Register starts on given byte -> Append it
-		if (reg_offset == byte_ind):
-			
-			# Read-write registers are fed from its own values! All other
-			# register types are fed from outside of the module.
-			if (self.reg_is_access_type(reg, ["read-write"])):
-				appendix = "_out_i."
-			else:
-				appendix = "_in."
-
-			read_wrd += (block.name + appendix + reg.name).lower()
-			if (byte_ind != 0):
-				read_wrd += " & "
-			return [False, read_wrd]
-
-		# Register contains this byte
-		elif (reg_offset <= byte_ind <= reg_offset + reg_bytes - 1):
-			return [False, read_wrd]
-
-		return [True, read_wrd]
-
-
-	def create_read_wrd_from_regs(self, regs_in_wrd, block):
+	def create_read_wrd_from_regs(self, regs_in_wrd, block, is_last):
 		"""
 		Create single read word input to read data multiplexor input. Readable
-		registers are implemented. 
+		registers are implemented.
 		"""
 		read_wrd = ""
 
-		i = 0
-		while (i < self.wrdWidthBit):
+		i = self.wrdWidthBit - 1
+		while (i >= 0):
+			is_padding = True
+			index_placed = False
 			for reg in regs_in_wrd:
 				# Skip registers which are not readable
 				if (not (self.reg_has_access_type(reg, ["read"]))):
 					continue
-			
-				for field in sorted(reg.field, key=lambda a: a.bitOffset):
-					read_wrd += 
-
-
-		for byte_ind in range(self.wrdWidthByte - 1, -1, -1):
-
-			pad_zeroes = True
-			for reg in regs_in_wrd:
-
-				# Skip registers which are not readable
-				if (not (self.reg_has_access_type(reg, ["read"]))):
-					continue;
 
 				for field in sorted(reg.field, key=lambda a: a.bitOffset):
+					field_low = field.bitOffset + ((reg.addressOffset % 4) * 8)
+					field_high = field.bitOffset + ((reg.addressOffset % 4) * 8) + field.bitWidth - 1
+					if field_low == i:
+						if (self.reg_has_access_type(reg, ["write"])):
+							suffix = "_out_i."
+						else:
+							suffix = "_in."
+						read_wrd += str("	" + block.name + suffix + reg.name + "_" + field.name).lower()
+						index_placed = True
 
+					# Search if the bit has no field
+					for ifield in sorted(reg.field, key=lambda a: a.bitOffset):
+						if ((i >= field_low) and (i <= field_high)):
+							is_padding = False
 
-				[pad_zeroes, read_wrd] = self.append_reg_byte_val(block, reg, 
-											byte_ind, read_wrd)
-				if (pad_zeroes == False):
-					break
+			if is_padding:
+				read_wrd += "	'0'"
+				index_placed = True
 
-			# If there is no register on this byte append zeroes as read data
-			if (pad_zeroes):
-				read_wrd += '"' + '0' * 8 + '"'
-				if (byte_ind != 0):
-					read_wrd += " & "
+			if (index_placed):
+				if (i > 0 or not is_last):
+					read_wrd += "	&\n"
+				else:
+					read_wrd += "\n"
+			i -= 1;
 
 		return read_wrd
 
@@ -363,13 +331,14 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 
 			# Search for all registers which are also "read" in given word
 			regs_in_wrd = self.get_regs_from_word(addr, block)
-			wrd_value = self.create_read_wrd_from_regs(regs_in_wrd, block)
+			is_last = False
+			if (addr == low_addr):
+				is_last = True
+			wrd_value = self.create_read_wrd_from_regs(regs_in_wrd, block, is_last)
 
 			self.hdlGen.wr_line(wrd_value)
 
-			if (addr != low_addr):
-				self.hdlGen.wr_line(" &\n")
-			else:
+			if (addr == low_addr):
 				break
 			self.hdlGen.wr_line("\n")
 
@@ -384,7 +353,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
         within a word is truncated.
 		"""
 		addr_lind = self.calc_addr_width_from_size(self.wrdWidthByte)
-		addr_hind = self.calc_addr_width_from_size(block.range) - 1 
+		addr_hind = self.calc_addr_width_from_size(block.range) - 1
 
 		return [addr_hind, addr_lind]
 
@@ -405,12 +374,11 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		addr_dec.generics["address_entries"].value = self.calc_blk_wrd_count(block)
 		addr_dec.generics["addr_vect"].value = "ADDR_VECT"
 		addr_dec.generics["registered_out"].value = "false"
-		addr_dec.generics["reset_polarity"].value = "reset_polarity".upper()
 
 		# Connect ports
 		addr_dec.ports["clk_sys"].value = "clk_sys"
 		addr_dec.ports["res_n"].value = "res_n"
-		
+
 		addr_indices = self.calc_addr_indices(block)
 		addr_str =  "address(" + str(addr_indices[0])
 		addr_str += " downto " + str(addr_indices[1]) + ")"
@@ -471,20 +439,19 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		object.
 		"""
 		reg_inst.generics["data_width"].value = field.bitWidth
-		reg_inst.generics["reset_polarity"].value = "reset_polarity".upper()
 
-		if (field.bitWidth == 1):
-			reg_inst.generics["reset_value"].value = "'" + str(field.reset_value) + "'"
-		else:
-			rst_rem = field.reset_value
-			i = 0
-			rst_str = ""
-			while i < field.bitWidth:
-				rst_str = str(rst_rem % 2) + rst_str
-				rst_rem = rst_rem >> 1
-				i += 1
-			reg_inst.generics["reset_value"].value = '"' + rst_str + '"'
-		
+		#if (field.bitWidth == 1):
+		#	reg_inst.generics["reset_value"].value = "'" + str(field.reset_value) + "'"
+		#else:
+		rst_rem = field.reset_value
+		i = 0
+		rst_str = ""
+		while i < field.bitWidth:
+			rst_str = str(rst_rem % 2) + rst_str
+			rst_rem = rst_rem >> 1
+			i += 1
+		reg_inst.generics["reset_value"].value = '"' + rst_str + '"'
+
 		if (field.modifiedWriteValue == "clear"):
 			reg_inst.generics["modified_write_val_clear"].value = "true"
 		else:
@@ -500,22 +467,22 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 
 		# If register has single field, do not append field name, most
 		# likely the same as name of the register!
-		if (len(reg.field) == 1):
-			reg_name = reg.name
-		else:
-			reg_name = reg.name + "_" + field.orig_name
+		#if (len(reg.field) == 1):
+		#	reg_name = reg.name
+		#else:
+		reg_name = reg.name + "_" + field.orig_name
 
-		if field.bitWidth == 1:
-			reg_value = (block.name + "_out_i." + reg_name).lower()
-		else:
-			range_str = "({} downto {})".format(field.bit_pos_high, field.bit_pos_low)
-			reg_value = (block.name + "_out_i." + reg_name + range_str).lower()
+		#if field.bitWidth == 1:
+		#	reg_value = (block.name + "_out_i." + reg_name).lower()
+		#else
+		range_str = "({} downto {})".format(field.bit_pos_high, field.bit_pos_low)
+		reg_value = (block.name + "_out_i." + reg_name + range_str).lower()
 		reg_inst.ports["reg_value"].value = reg_value
 
 		# Calculate data input indices within a memory word
 		l_ind = field.bitOffset
 		h_ind = field.bitWidth + field.bitOffset - 1
-		reg_inst.ports["data_in"].value = self.hdlGen.format_vector_range("w_data", h_ind, l_ind)
+		reg_inst.ports["data_in"].value = "w_data({} downto {})".format(h_ind, l_ind)
 		reg_inst.ports["write"].value = "write_en({})".format(int(field.bitOffset/8))
 
 		reg_sel_index = self.get_wrd_index(block, reg) - 1
@@ -548,7 +515,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 				new_field.name += "_slice_{}".format(slice_cnt)
 				new_field.bitOffset = low_index
 				new_field.bitWidth = i * 8 - low_index
-				
+
 				new_field.bit_pos_low = width_so_far
 				new_field.bit_pos_high = width_so_far + new_field.bitWidth - 1
 				width_so_far = new_field.bitWidth
@@ -598,8 +565,8 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 			path = os.path.join(ROOT_PATH, self.template_sources["reg_lockable_template_path"])
 		else:
 			path = os.path.join(ROOT_PATH, self.template_sources["reg_template_path"])
-		
-		# Write conditional generic expression if register isPresent property 
+
+		# Write conditional generic expression if register isPresent property
 		# depends on IP-XACT Parameter
 		if (reg.isPresent != ""):
 			paramName = self.parameter_lookup(reg.isPresent)
@@ -618,7 +585,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 
 			self.hdlGen.write_comment(reg.name.upper() + "[" + field.name.upper() + "]", gap = 4)
 
-			# Fill generics of reg map component			
+			# Fill generics of reg map component
 			self.fill_reg_inst_generics(reg, field, reg_inst)
 
 			# Fill Ports of reg map component
@@ -638,10 +605,12 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 			self.hdlGen.create_if_generate(reg.name + "_present_gen_f",
 				paramName.upper(), "false", gap=4)
 
-			rst_val = self.calc_reg_rstval_mask(reg)
-			# TODO: Create per-field connections!
-			self.hdlGen.create_signal_connection(
-				(block.name + "_out_i." + reg.name).lower(), rst_val, gap = 8)
+			#rst_val = self.calc_reg_rstval_mask(reg)
+			for field in sorted(reg.field, key=lambda a: a.bitOffset):
+				# TODO: This is hard-coded for current CTU CAN FD!
+				#		Takes into acocunt only FILTER registers, not arbitrary reset value!
+				self.hdlGen.create_signal_connection(
+					(block.name + "_out_i." + reg.name + "_" + field.name).lower(), "(others => '0')", gap = 8)
 
 			self.hdlGen.commit_append_line(1)
 			self.hdlGen.wr_line("\n")
@@ -652,7 +621,6 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		Fill generics for VHDL access signaller instance from IP-XACT register
 		object.
 		"""
-		signaller_inst.generics["reset_polarity"].value = "reset_polarity".upper()
 		signaller_inst.generics["data_width"].value = reg.size
 
 		# Read signalling capability
@@ -672,7 +640,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 			signaller_inst.generics["write_signalling_reg"].value = True
 		else:
 			signaller_inst.generics["write_signalling"].value = False
-			signaller_inst.generics["write_signalling_reg"].value = False	
+			signaller_inst.generics["write_signalling_reg"].value = False
 
 
 	def fill_access_signaller_ports(self, block, reg, signaller_inst):
@@ -696,13 +664,13 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		# Connect write access signalling
 		wr_signal = "open"
 		if (self.is_reg_write_indicate(reg)):
-			wr_signal = (block.name + "_out_i." + reg.name + "_write").lower()			
+			wr_signal = (block.name + "_out_i." + reg.name + "_write").lower()
 		signaller_inst.ports["write_signal"].value = wr_signal
 
 		# Connect read access signalling
 		rd_signal = "open"
 		if (self.is_reg_read_indicate(reg)):
-			rd_signal = (block.name + "_out_i." + reg.name + "_read").lower()			
+			rd_signal = (block.name + "_out_i." + reg.name + "_read").lower()
 		signaller_inst.ports["read_signal"].value = rd_signal
 
 
@@ -724,7 +692,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		self.fill_access_signaller_ports(block, reg, signaller_inst)
 
 		self.hdlGen.write_comment(reg.name.upper() + " access signallization", gap = 4)
-		
+
 		# Create component of signaller
 		self.hdlGen.format_entity_decl(signaller_inst)
 		self.hdlGen.create_comp_instance(signaller_inst)
@@ -755,7 +723,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		data_mux = self.hdlGen.load_entity_template(path)
 		data_mux.isInstance = True
 		data_mux.value = (data_mux.name + "_"+ block.name + "_comp").lower()
-		
+
 		# FIll generic values
 		data_mux.generics["data_out_width"].value = self.wrdWidthBit
 
@@ -764,11 +732,10 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		data_mux.generics["data_in_width"].value = (high_addr - low_addr) * 8;
 
 		data_mux_indices = self.calc_addr_indices(block)
-		data_mux_sel_width = data_mux_indices[0] - data_mux_indices[1] + 1 
+		data_mux_sel_width = data_mux_indices[0] - data_mux_indices[1] + 1
 		data_mux.generics["sel_width"].value = data_mux_sel_width
 
 		data_mux.generics["registered_out"].value = "registered_read".upper()
-		data_mux.generics["reset_polarity"].value = "reset_polarity".upper()
 
 		# Connect ports
 		data_mux.ports["clk_sys"].value = "clk_sys"
@@ -783,7 +750,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		data_mux.ports["data_out"].value = "r_data"
 
 		# Enable data loading
-		data_mux.ports["enable"].value = "read_mux_ena";
+		data_mux.ports["enable"].value = "'1'";
 
 		self.hdlGen.write_comment("Read data multiplexor", gap=4)
 		self.hdlGen.format_entity_decl(data_mux)
@@ -801,7 +768,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		wrd_line = ""
 		byte_lst = []
 		for byte in range(self.wrdWidthByte - 1, -1, -1):
-			be_ind = self.hdlGen.format_vector_index("be", byte)			
+			be_ind = self.hdlGen.format_vector_index("be", byte)
 			for x in range(0,8):
 				byte_lst.append(be_ind)
 				byte_lst[-1] += " "
@@ -837,7 +804,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		path = os.path.join(ROOT_PATH, self.template_sources["mem_bus_template_path"])
 		entity = self.hdlGen.load_entity_template(path)
 		entity.intType = "entity"
-		entity.isInstance = False		
+		entity.isInstance = False
 		entity.name = block.name.lower() + "_reg_map"
 
 		# Add ports for register values
@@ -881,12 +848,12 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 
 		be_lst = []
 		for i in range(l_be_ind, h_be_ind + 1):
-	
+
 			be_lst.append(self.hdlGen.format_logic_op(
 						    [self.hdlGen.format_vector_index("be",i),
 							 self.hdlGen.format_bin_const("1")],
 							 self.hdlGen.LogicOp.OP_COMPARE))
-		
+
 		be_str = self.hdlGen.format_logic_op(be_lst, self.hdlGen.LogicOp.OP_OR)
 
 		op_lst = []
@@ -949,13 +916,13 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		"""
 
 		self.hdlGen.write_comment("Read data multiplexor enable ", gap = 4)
-		
+
 		# Read data should be kept, enable is driven by read signal which is
 		# active for each read transaction
 		self.hdlGen.create_if_generate(name="read_data_keep_gen",
 				condition="clear_read_data".upper(), value="false", gap = 4)
 
-		self.hdlGen.create_signal_connection(result="read_mux_ena", 
+		self.hdlGen.create_signal_connection(result="read_mux_ena",
 												driver="read and cs", gap=8)
 
 		self.hdlGen.commit_append_line(1)
@@ -1014,7 +981,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 
 		# Start architecture
 		self.hdlGen.create_comp_instance(architecture)
-		
+
 		# Create instance of write address generator
 		self.create_addr_decoder(block)
 
@@ -1022,7 +989,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		self.create_write_reg_instances(block)
 
 		# Create driver for enable signal for read data multiplexor
-		self.create_read_data_mux_ena()
+		#self.create_read_data_mux_ena()
 
 		# Create Data multiplexor for data reads
 		self.create_read_data_mux_instance(block)
@@ -1032,7 +999,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		self.create_read_data_mask_driver()
 
 		# Create connections of internal write register record to output
-		self.create_write_reg_record_driver(block)	
+		self.create_write_reg_record_driver(block)
 		self.hdlGen.wr_line("\n")
 
 		# Create PSL functional coverage entries
@@ -1062,10 +1029,10 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 			for field in sorted(reg.field, key=lambda a: a.bitOffset):
 				if ("write" in reg.access):
 					outDecls.append(LanDeclaration(reg.name + "_" + field.name, value=""))
-					if field.bitWidth > 1:
-						outDecls[-1].type = "std_logic_vector"
-					else:
-						outDecls[-1].type = "std_logic"
+					#if field.bitWidth > 1:
+					outDecls[-1].type = "std_logic_vector"
+					#else:
+					#	outDecls[-1].type = "std_logic"
 					outDecls[-1].bitWidth = field.bitWidth
 					outDecls[-1].specifier = ""
 
@@ -1105,10 +1072,10 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 
 				for field in sorted(reg.field, key=lambda a: a.bitOffset):
 					inDecls.append(LanDeclaration(reg.name + "_" + field.name, value=""))
-					if field.bitWidth > 1:
-						inDecls[-1].type = "std_logic_vector"
-					else:
-						inDecls[-1].type = "std_logic"
+					#if field.bitWidth > 1:
+					inDecls[-1].type = "std_logic_vector"
+					#else:
+					#	inDecls[-1].type = "std_logic"
 					inDecls[-1].bitWidth = field.bitWidth
 					inDecls[-1].specifier = ""
 
@@ -1122,7 +1089,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 	def create_mem_block_records(self, block):
 		"""
 		Create records for register module input/outputs. Each writable
-		register is present in "write record". Each readable register is 
+		register is present in "write record". Each readable register is
 		present in a read record.
 		"""
 		self.hdlGen.wr_nl()

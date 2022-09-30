@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
--- 
+--
 -- Register map generation tool
 --
 -- Copyright (C) 2018 Ondrej Ille <ondrej.ille@gmail.com>
@@ -44,13 +44,10 @@ entity memory_reg is
         -- Width of register data
         constant data_width                 :     natural := 32;
 
-        -- Reset polarity
-        constant reset_polarity             :     std_logic := '0';
-
         -- Reset value of register
         constant reset_value                :     std_logic_vector;
 
-        -- If given bit of the register should be cleared automatically after 
+        -- If given bit of the register should be cleared automatically after
         -- writing. In this case no DFF is inserted, output value is decoded
         -- only combinatorially and lasts as long as chip selec is active!
         constant modified_write_val_clear   :     boolean
@@ -74,7 +71,7 @@ entity memory_reg is
         ------------------------------------------------------------------------
         signal reg_value              :out  std_logic_vector(data_width - 1 downto 0)
     );
-             
+
 end entity memory_reg;
 
 
@@ -93,7 +90,6 @@ architecture rtl of memory_reg is
     -- Tool should assign the constant the same way as it was passed.
     ---------------------------------------------------------------------------
     constant reset_value_i : std_logic_vector(data_width - 1 downto 0) := reset_value;
-    constant auto_clear_i  : std_logic_vector(data_width - 1 downto 0) := auto_clear;
 
     -- Register implementation itself!
     signal reg_value_r          :   std_logic_vector(data_width - 1 downto 0);
@@ -105,7 +101,7 @@ begin
 
     ----------------------------------------------------------------------------
     -- Write enable
-    ----------------------------------------------------------------------------    
+    ----------------------------------------------------------------------------
     wr_en <= write and cs;
 
     ----------------------------------------------------------------------------
@@ -117,28 +113,28 @@ begin
         -- Regular register (DFF)
         --------------------------------------------------------------------
         reg_regular_gen : if (not modified_write_val_clear) generate
-            
+
             reg_access_proc : process(clk_sys, res_n)
             begin
-                if (res_n = reset_polarity) then
+                if (res_n = '0') then
                     reg_value_r(i)  <= reset_value_i(i);
-                elsif (rising_edge(clk_sys)) then                    
+                elsif (rising_edge(clk_sys)) then
                     if (wr_en = '1') then
                         reg_value_r(i)  <= data_in(i);
                     end if;
                 end if;
             end process;
-            
+
         end generate reg_regular_gen;
-            
-            
+
+
         --------------------------------------------------------------------
         -- Clear register (no DFF - combinatorial only). When access
         -- is made, put data to output, reset value otherwise.
         --------------------------------------------------------------------
         reg_autoclear_gen : if (modified_write_val_clear) generate
-            
-            reg_value_r(i) <= data_in(i) when wr_select_expanded(i) = '1'
+
+            reg_value_r(i) <= data_in(i) when (wr_en = '1')
                                          else
                               reset_value_i(i);
 
