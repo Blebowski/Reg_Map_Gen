@@ -470,14 +470,21 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		#if (len(reg.field) == 1):
 		#	reg_name = reg.name
 		#else:
-		reg_name = reg.name + "_" + field.orig_name
 
-		#if field.bitWidth == 1:
-		#	reg_value = (block.name + "_out_i." + reg_name).lower()
-		#else
-		range_str = "({} downto {})".format(field.bit_pos_high, field.bit_pos_low)
-		reg_value = (block.name + "_out_i." + reg_name + range_str).lower()
-		reg_inst.ports["reg_value"].value = reg_value
+		reg_name = reg.name + "_" + field.orig_name
+		reg_value = block.name + "_out_i." + reg_name
+
+		if field.bitWidth == 1:
+			reg_inst.ports["reg_value"].name += "(0)"
+
+		if field.is_slice:
+			if field.bitWidth == 1:
+				range_str = "({})".format(field.bit_pos_low)
+			else:
+				range_str = "({} downto {})".format(field.bit_pos_high, field.bit_pos_low)
+			reg_value += range_str
+
+		reg_inst.ports["reg_value"].value = reg_value.lower()
 
 		# Calculate data input indices within a memory word
 		l_ind = field.bitOffset
@@ -516,6 +523,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 				new_field.bitOffset = low_index
 				new_field.bitWidth = i * 8 - low_index
 
+				new_field.is_slice = True
 				new_field.bit_pos_low = width_so_far
 				new_field.bit_pos_high = width_so_far + new_field.bitWidth - 1
 				width_so_far = new_field.bitWidth
@@ -536,6 +544,9 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 			new_field = copy.copy(field)
 			if (slice_cnt > 1):
 				new_field.name += "_slice_{}".format(slice_cnt)
+				new_field.is_slice = True
+			else:
+				new_field.is_slice = False
 			new_field.orig_name = field.name
 			new_field.bitOffset = low_index
 			new_field.bitWidth = high_index - low_index + 1
@@ -594,7 +605,6 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 			# Format register instances and print it
 			self.hdlGen.format_entity_decl(reg_inst)
 			self.hdlGen.create_comp_instance(reg_inst)
-
 
 
 		# Pop end of generate statement determined by isPresent property. Append
@@ -1029,10 +1039,10 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 			for field in sorted(reg.field, key=lambda a: a.bitOffset):
 				if ("write" in reg.access):
 					outDecls.append(LanDeclaration(reg.name + "_" + field.name, value=""))
-					#if field.bitWidth > 1:
-					outDecls[-1].type = "std_logic_vector"
-					#else:
-					#	outDecls[-1].type = "std_logic"
+					if field.bitWidth > 1:
+						outDecls[-1].type = "std_logic_vector"
+					else:
+						outDecls[-1].type = "std_logic"
 					outDecls[-1].bitWidth = field.bitWidth
 					outDecls[-1].specifier = ""
 
@@ -1072,10 +1082,10 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 
 				for field in sorted(reg.field, key=lambda a: a.bitOffset):
 					inDecls.append(LanDeclaration(reg.name + "_" + field.name, value=""))
-					#if field.bitWidth > 1:
-					inDecls[-1].type = "std_logic_vector"
-					#else:
-					#	inDecls[-1].type = "std_logic"
+					if field.bitWidth > 1:
+						inDecls[-1].type = "std_logic_vector"
+					else:
+						inDecls[-1].type = "std_logic"
 					inDecls[-1].bitWidth = field.bitWidth
 					inDecls[-1].specifier = ""
 
