@@ -358,6 +358,14 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		return [addr_hind, addr_lind]
 
 
+	def create_write_en_assign(self):
+		"""
+		"""
+		self.hdlGen.create_signal_connection("write_en",
+						"be when (write = '1' and cs = '1') else (others => '0')", gap=4)
+		self.hdlGen.wr_line("\n")
+
+
 	def create_addr_decoder(self, block):
 		"""
         Create instance of address decoder for writable registers.
@@ -487,8 +495,9 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		reg_inst.ports["reg_value"].value = reg_value.lower()
 
 		# Calculate data input indices within a memory word
-		l_ind = field.bitOffset
-		h_ind = field.bitWidth + field.bitOffset - 1
+		start_bit = (reg.addressOffset % 4) * 8
+		l_ind = start_bit + field.bitOffset
+		h_ind = start_bit + field.bitWidth + field.bitOffset - 1
 		reg_inst.ports["data_in"].value = "w_data({} downto {})".format(h_ind, l_ind)
 		reg_inst.ports["write"].value = "write_en({})".format(int(field.bitOffset/8))
 
@@ -526,7 +535,6 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 				new_field.is_slice = True
 				new_field.bit_pos_low = width_so_far
 				new_field.bit_pos_high = width_so_far + new_field.bitWidth - 1
-				width_so_far = new_field.bitWidth
 
 				new_field.reset_value = reset_remainder & int(2 ** new_field.bitWidth - 1)
 				new_field.orig_name = field.name
@@ -535,6 +543,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 				low_index = int(i * 8)
 				i += 1
 				slice_cnt += 1
+				width_so_far += new_field.bitWidth
 
 				#print("Stripping field {}:".format(new_field.name))
 				#print("		OFFSET: {} WIDTH: {} RESET VAL: {}".format(new_field.bitOffset, new_field.bitWidth, new_field.reset_value))
@@ -991,6 +1000,9 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 
 		# Start architecture
 		self.hdlGen.create_comp_instance(architecture)
+
+		# Write driver for write enable
+		self.create_write_en_assign()
 
 		# Create instance of write address generator
 		self.create_addr_decoder(block)
