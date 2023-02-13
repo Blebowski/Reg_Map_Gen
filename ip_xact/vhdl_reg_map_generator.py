@@ -281,7 +281,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 					field_low = field.bitOffset + ((reg.addressOffset % 4) * 8)
 					field_high = field.bitOffset + ((reg.addressOffset % 4) * 8) + field.bitWidth - 1
 					if field_low == i:
-						if (self.reg_has_access_type(reg, ["write"])):
+						if self.reg_is_access_type(reg, ["read-write"]):
 							suffix = "_out_i."
 						else:
 							suffix = "_in."
