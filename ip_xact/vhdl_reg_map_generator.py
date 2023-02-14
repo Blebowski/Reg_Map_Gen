@@ -499,7 +499,10 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		l_ind = start_bit + field.bitOffset
 		h_ind = start_bit + field.bitWidth + field.bitOffset - 1
 		reg_inst.ports["data_in"].value = "w_data({} downto {})".format(h_ind, l_ind)
-		reg_inst.ports["write"].value = "write_en({})".format(int(field.bitOffset/8))
+
+		# Calculate write enable position
+		write_en_bit = (reg.addressOffset % 4) + int(field.bitOffset/8)
+		reg_inst.ports["write"].value = "write_en({})".format(write_en_bit)
 
 		reg_sel_index = self.get_wrd_index(block, reg) - 1
 		reg_inst.ports["cs"].value = self.hdlGen.format_vector_index("reg_sel", reg_sel_index)
