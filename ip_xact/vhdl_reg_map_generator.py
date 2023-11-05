@@ -55,8 +55,12 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 	# Paths of VHDL templates
 	template_sources = {}
 	template_sources["addr_dec_template_path"] = "templates/address_decoder.vhd"
-	template_sources["reg_template_path"] = "templates/memory_reg.vhd"
-	template_sources["reg_lockable_template_path"] = "templates/memory_reg_lockable.vhd"
+
+	template_sources["reg_rw_template_path"] = "templates/memory_reg_rw.vhd"
+	template_sources["reg_rw_lock_template_path"] = "templates/memory_reg_rw_lock.vhd"
+	template_sources["reg_os_template_path"] = "templates/memory_reg_os.vhd"
+	template_sources["reg_os_lock_template_path"] = "templates/memory_reg_os_lock.vhd"
+
 	template_sources["data_mux_template_path"] = "templates/data_mux.vhd"
 	template_sources["mem_bus_template_path"] = "templates/memory_bus.vhd"
 	template_sources["access_signaller_template_path"] = "templates/access_signaler.vhd"
@@ -407,30 +411,6 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		return super().calc_reg_rstval_mask(reg)
 
 
-	def calc_autoclear_mask(self, reg):
-		"""
-		Calculate mask for autoclear feature of memory register. Bits of memory
-		register marked as "clear" in "write action" will be automatically cleared
-		after write (One-shot like).
-		"""
-		# Suppose no bit is autoclear
-		autoclearMask = ["0" for x in range(reg.size)]
-
-		# Go through register fields and mark each bit whose field has "clear" action
-		# on write
-		for field in sorted(reg.field, key=lambda a: a.bitOffset):
-			if (field.modifiedWriteValue == "clear"):
-				if (field.bitWidth > 1):
-					for j in range(field.bitOffset, field.bitOffset + field.bitWidth):
-						autoclearMask[j] = "1"
-				else:
-					autoclearMask[field.bitOffset] = "1"
-
-		# Reverse the list, since std_logic_vector has opposite order than list!
-		# Concat values and surround by ""
-		return '"' + ''.join(autoclearMask[::-1]) + '"'
-
-
 	def calc_reg_byte_enable_vector(self, reg):
 		"""
 		Create byte enable vector for a register. Position of register within
@@ -459,11 +439,6 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 			rst_rem = rst_rem >> 1
 			i += 1
 		reg_inst.generics["reset_value"].value = '"' + rst_str + '"'
-
-		if (field.modifiedWriteValue == "clear"):
-			reg_inst.generics["modified_write_val_clear"].value = "true"
-		else:
-			reg_inst.generics["modified_write_val_clear"].value = "false"
 
 
 	def fill_reg_ports(self, block, reg, field, reg_inst):
@@ -583,12 +558,6 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
         is set, parameter name is searched in IP-XACT input and it's name is used
         as generic condition for register presence.
 		"""
-		# Load register template path and create basic instance
-		if (self.get_reg_lock(reg)[0] == "true"):
-			path = os.path.join(ROOT_PATH, self.template_sources["reg_lockable_template_path"])
-		else:
-			path = os.path.join(ROOT_PATH, self.template_sources["reg_template_path"])
-
 		# Write conditional generic expression if register isPresent property
 		# depends on IP-XACT Parameter
 		if (reg.isPresent != ""):
@@ -600,6 +569,18 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		split_fields = self.split_reg_fields(reg)
 
 		for field in split_fields:
+
+			# Load register template path and create basic instance
+			if (self.get_reg_lock(reg)[0] == "true"):
+				if (field.modifiedWriteValue == "clear"):
+					path = os.path.join(ROOT_PATH, self.template_sources["reg_os_lock_template_path"])
+				else:
+					path = os.path.join(ROOT_PATH, self.template_sources["reg_rw_lock_template_path"])
+			else:
+				if (field.modifiedWriteValue == "clear"):
+					path = os.path.join(ROOT_PATH, self.template_sources["reg_os_template_path"])
+				else:
+					path = os.path.join(ROOT_PATH, self.template_sources["reg_rw_template_path"])
 
 			reg_inst = self.hdlGen.load_entity_template(path)
 			reg_inst.isInstance = True
