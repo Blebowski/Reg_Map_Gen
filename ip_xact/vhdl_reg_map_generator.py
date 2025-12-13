@@ -62,7 +62,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 	template_sources["reg_os_lock_template_path"] = "templates/memory_reg_os_lock.vhd"
 
 	template_sources["mem_bus_template_path"] = "templates/memory_bus.vhd"
-	template_sources["access_signaller_template_path"] = "templates/access_signaler.vhd"
+	template_sources["access_signaller_template_path"] = "templates/read_access_signaler.vhd"
 	template_sources["cmn_reg_map_pkg"] = "templates/cmn_reg_map_pkg.vhd"
 
 
@@ -585,25 +585,6 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		"""
 		signaller_inst.generics["data_width"].value = reg.size
 
-		# Read signalling capability
-		if (self.is_reg_read_indicate(reg)):
-			signaller_inst.generics["read_signalling"].value = True
-		else:
-			signaller_inst.generics["read_signalling"].value = False
-
-		# Mark read signalling as combinational value!
-		signaller_inst.generics["read_signalling_reg"].value = False
-
-		# Write signalling capability, set signalling as registered to have
-		# the signal in the same clock cycle as new data are written to the
-		# register!
-		if (self.is_reg_write_indicate(reg)):
-			signaller_inst.generics["write_signalling"].value = True
-			signaller_inst.generics["write_signalling_reg"].value = True
-		else:
-			signaller_inst.generics["write_signalling"].value = False
-			signaller_inst.generics["write_signalling_reg"].value = False
-
 
 	def fill_access_signaller_ports(self, block, reg, signaller_inst):
 		"""
@@ -620,14 +601,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 
 		# Connect memory bus signals
 		signaller_inst.ports["read"].value = "read"
-		signaller_inst.ports["write"].value = "write"
 		signaller_inst.ports["be"].value = self.calc_reg_byte_enable_vector(reg)
-
-		# Connect write access signalling
-		wr_signal = "open"
-		if (self.is_reg_write_indicate(reg)):
-			wr_signal = (block.name + "_out_i." + reg.name + "_write").lower()
-		signaller_inst.ports["write_signal"].value = wr_signal
 
 		# Connect read access signalling
 		rd_signal = "open"
