@@ -61,7 +61,6 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 	template_sources["reg_os_template_path"] = "templates/memory_reg_os.vhd"
 	template_sources["reg_os_lock_template_path"] = "templates/memory_reg_os_lock.vhd"
 
-	template_sources["data_mux_template_path"] = "templates/data_mux.vhd"
 	template_sources["mem_bus_template_path"] = "templates/memory_bus.vhd"
 	template_sources["access_signaller_template_path"] = "templates/access_signaler.vhd"
 	template_sources["cmn_reg_map_pkg"] = "templates/cmn_reg_map_pkg.vhd"
@@ -172,19 +171,14 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		signDict["addr_vect"].bitWidth = addr_vect_size
 
 
-	def create_read_data_mux_in_decl(self, block, signDict):
+	def create_read_data_comb_decl(self, block, signDict):
 		"""
-		Create declaration of read data multiplexor input signal. Length of
-		read data mux input covers the minimum necessary length to cover
-		all words with readable registers.
+		Create declaration of read data combinational signal.
 		"""
-		signDict["read_data_mux_in"] = LanDeclaration("read_data_mux_in", value = None)
-		signDict["read_data_mux_in"].type = "std_logic"
-
-		[low_addr, high_addr] = self.calc_blk_wrd_span(block, ["read"])
-		high_addr += self.wrdWidthByte
-		signDict["read_data_mux_in"].bitWidth = (high_addr - low_addr) * 8;
-		signDict["read_data_mux_in"].specifier = "signal"
+		signDict["r_data_comb"] = LanDeclaration("r_data_comb", value = None)
+		signDict["r_data_comb"].type = "std_logic"
+		signDict["r_data_comb"].bitWidth = self.wrdWidthByte * 8;
+		signDict["r_data_comb"].specifier = "signal"
 
 
 	def create_read_data_mask_n_decl(self, block, signDict):
@@ -248,8 +242,8 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		# Create address vector input to address decoder
 		self.create_addr_vect_decl(block, signDict)
 
-		# Create data mux input signal (long logic vector)
-		self.create_read_data_mux_in_decl(block, signDict)
+		# Create r_data comb signal
+		self.create_read_data_comb_decl(block, signDict)
 
 		# Create data mask signal for read multiplextor
 		self.create_read_data_mask_n_decl(block, signDict)
@@ -271,11 +265,13 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		registers are implemented.
 		"""
 		read_wrd = ""
-
 		i = self.wrdWidthBit - 1
+		prev_padding = False
+
 		while (i >= 0):
 			is_padding = True
 			index_placed = False
+
 			for reg in regs_in_wrd:
 				# Skip registers which are not readable
 				if (not (self.reg_has_access_type(reg, ["read"]))):
@@ -289,7 +285,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 							suffix = "_out_i."
 						else:
 							suffix = "_in."
-						read_wrd += str("	" + block.name + suffix + reg.name + "_" + field.name).lower()
+						read_wrd += str("\n        " + block.name + suffix + reg.name + "_" + field.name).lower()
 						index_placed = True
 
 					# Search if the bit has no field
@@ -298,56 +294,19 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 							is_padding = False
 
 			if is_padding:
-				read_wrd += "	'0'"
+				if not prev_padding:
+					read_wrd += "\n       "
+				read_wrd += " '0'"
 				index_placed = True
 
 			if (index_placed):
-				if (i > 0 or not is_last):
-					read_wrd += "	&\n"
-				else:
-					read_wrd += "\n"
-			i -= 1;
+				if (i > 0):
+					read_wrd += " &"
+
+			i -= 1
+			prev_padding = is_padding
 
 		return read_wrd
-
-
-	def create_read_data_mux_in(self, block):
-		"""
-		Create driver for read data multiplexor input signal. Read data
-		multiplexor is a long vector with read data concatenated to
-		long std_logic vector.
-		"""
-		self.hdlGen.write_comment("Read data driver", gap = 2)
-		self.hdlGen.push_parallel_assignment("read_data_mux_in")
-		self.hdlGen.wr_line("\n")
-
-		# Check each word in the memory block, Start from highest address
-		# since highest bits in std_logic_vector correspond to highest
-		# address!
-		[low_addr, high_addr] = self.calc_blk_wrd_span(block, ["read"])
-		high_addr += self.wrdWidthByte
-
-		# TODO: This could be written with concatenation!!
-		for addr in reversed(range(low_addr, high_addr, self.wrdWidthByte)):
-
-			# Create comment with word address
-			self.hdlGen.write_comment("Adress:" + str(addr), gap=4, small=True)
-
-			# Search for all registers which are also "read" in given word
-			regs_in_wrd = self.get_regs_from_word(addr, block)
-			is_last = False
-			if (addr == low_addr):
-				is_last = True
-			wrd_value = self.create_read_wrd_from_regs(regs_in_wrd, block, is_last)
-
-			self.hdlGen.wr_line(wrd_value)
-
-			if (addr == low_addr):
-				break
-			self.hdlGen.wr_line("\n")
-
-		self.hdlGen.commit_append_line(1)
-		self.hdlGen.wr_line("\n")
 
 
 	def calc_addr_indices(self, block):
@@ -716,48 +675,46 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 				self.create_access_signaller(block, reg)
 
 
-	def create_read_data_mux_instance(self, block):
+	def create_read_data_logic(self, block):
 		"""
-        Create instance of Read data multiplexor.
+		Create read data logic:
+			- Read data mux
+			- Byte enable masking
+			- Output register
 		"""
-		path = os.path.join(ROOT_PATH, self.template_sources["data_mux_template_path"])
-
-		# Load data mux template
-		data_mux = self.hdlGen.load_entity_template(path)
-		data_mux.isInstance = True
-		data_mux.value = (data_mux.name + "_"+ block.name + "_comp").lower()
-
-		# FIll generic values
-		data_mux.generics["data_out_width"].value = self.wrdWidthBit
-
 		[low_addr, high_addr] = self.calc_blk_wrd_span(block, ["read"])
 		high_addr += self.wrdWidthByte
-		data_mux.generics["data_in_width"].value = (high_addr - low_addr) * 8;
 
-		data_mux_indices = self.calc_addr_indices(block)
-		data_mux_sel_width = data_mux_indices[0] - data_mux_indices[1] + 1
-		data_mux.generics["sel_width"].value = data_mux_sel_width
+		self.hdlGen.write_comment("Read data multiplexor", gap = 4)
 
-		data_mux.generics["registered_out"].value = "registered_read".upper()
+		[high_addr_bit,low_addr_bit] = self.calc_addr_indices(block)
+		self.hdlGen.wr_line(f"    with address({high_addr_bit} downto {low_addr_bit}) select r_data_comb <=")
 
-		# Connect ports
-		data_mux.ports["clk_sys"].value = "clk_sys"
-		data_mux.ports["res_n"].value = "res_n"
+		for addr in range(low_addr, high_addr, self.wrdWidthByte):
 
-		addr_indices = self.calc_addr_indices(block)
-		addr_str = self.hdlGen.format_vector_range("address", addr_indices[0], addr_indices[1])
-		data_mux.ports["data_selector"].value = addr_str
+			# Search for all registers which are also "read" in given word
+			regs_in_wrd = self.get_regs_from_word(addr, block)
+			is_last = False
+			if (addr == low_addr):
+				is_last = True
+			wrd_value = self.create_read_wrd_from_regs(regs_in_wrd, block, is_last)
 
-		data_mux.ports["data_in"].value = "read_data_mux_in"
-		data_mux.ports["data_mask_n"].value = "read_data_mask_n"
-		data_mux.ports["data_out"].value = "r_data"
+			addr >>= int(math.log2(self.wrdWidthByte))
+			self.hdlGen.wr_line(wrd_value + f' when "{addr:0{high_addr_bit-low_addr_bit+1}b}",' )
 
-		# Enable data loading
-		data_mux.ports["enable"].value = "'1'";
+		self.hdlGen.wr_line(f"\n        (others => '0') when others;\n\n")
 
-		self.hdlGen.write_comment("Read data multiplexor", gap=4)
-		self.hdlGen.format_entity_decl(data_mux)
-		self.hdlGen.create_comp_instance(data_mux)
+		self.hdlGen.write_comment("Output register", gap = 4)
+		self.hdlGen.wr_line(f"    read_data_reg_proc : process(res_n, clk_sys)\n")
+		self.hdlGen.wr_line(f"    begin\n")
+		self.hdlGen.wr_line(f"        if (res_n = '0') then\n")
+		self.hdlGen.wr_line(f"            r_data <= (others => '0');\n")
+		self.hdlGen.wr_line(f"        elsif (rising_edge(clk_sys)) then\n")
+		self.hdlGen.wr_line(f"            if (cs = '1' and read = '1') then\n")
+		self.hdlGen.wr_line(f"                r_data <= r_data_comb and read_data_mask_n;\n")
+		self.hdlGen.wr_line(f"            end if;\n")
+		self.hdlGen.wr_line(f"        end if;\n")
+		self.hdlGen.wr_line(f"    end process;\n\n")
 
 
 	def create_read_data_mask_driver(self):
@@ -909,47 +866,6 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		self.hdlGen.write_comment("<RELEASE_ON>", gap = 4, small=True)
 
 
-	def create_read_data_mux_ena(self):
-		"""
-		Create driver for read data multiplexor enable signal. If read data
-		should be cleared after transaction, enable is constantly at logic 1,
-		thus next cycle will data will be cleared, read mux  output flop is
-		permanently enabled. If read data should not be cleared, flop is
-		enabled only by new transaction.
-		"""
-
-		self.hdlGen.write_comment("Read data multiplexor enable ", gap = 4)
-
-		# Read data should be kept, enable is driven by read signal which is
-		# active for each read transaction
-		self.hdlGen.create_if_generate(name="read_data_keep_gen",
-				condition="clear_read_data".upper(), value="false", gap = 4)
-
-		self.hdlGen.create_signal_connection(result="read_mux_ena",
-												driver="read and cs", gap=8)
-
-		self.hdlGen.commit_append_line(1)
-		self.hdlGen.wr_line("\n")
-
-		# Read data should be cleared, enable is constant 1, thus at next cycle
-		# all byte enables will be zero and all zeroes will propagate on
-		# outputs.
-		self.hdlGen.create_if_generate(name="read_data_clear_gen",
-				condition="clear_read_data".upper(), value="true", gap = 4)
-
-		# Note that this approach will clock register value to the data mux
-		# output also when write is executed to this register. We don't
-		# mind this, since register reads has no side effects! Side effects
-		# are implemented via access_signallers and thus choosing the
-		# register value by read data mux even when it is not needed is
-		# sth we don't mind.
-		self.hdlGen.create_signal_connection(result="read_mux_ena",
-												driver="'1'", gap=8)
-
-		self.hdlGen.commit_append_line(1)
-		self.hdlGen.wr_line("\n")
-
-
 	def write_reg_block(self, block):
 		"""
         Create register block in VHDL from IP-XACT memory block object.
@@ -994,14 +910,8 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		# Create instance of registers
 		self.create_write_reg_instances(block)
 
-		# Create driver for enable signal for read data multiplexor
-		#self.create_read_data_mux_ena()
-
-		# Create Data multiplexor for data reads
-		self.create_read_data_mux_instance(block)
-
-		# Create Driver for read data signal
-		self.create_read_data_mux_in(block)
+		# Create read data logic
+		self.create_read_data_logic(block)
 		self.create_read_data_mask_driver()
 
 		# Create connections of internal write register record to output
