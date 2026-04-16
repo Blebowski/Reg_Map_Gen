@@ -98,7 +98,7 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 
 	def reg_append_short_enums(self, field):
 		"""
-        Create line with enums for given register field. Enum name and description 
+        Create line with enums for given register field. Enum name and description
         are addedd to each line.
 		"""
 		appendText = ""
@@ -108,10 +108,10 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 		if (len(field.enumeratedValues[0].enumeratedValue) > 0):
 			for es in field.enumeratedValues:
 				for (i,e) in enumerate(sorted(es.enumeratedValue, key=lambda x: x.value)):
-					appendText += "\\begin_inset Newline newline\\end_inset\n"
+					appendText += "\n\\begin_inset Newline newline\n\\end_inset\n"
 					binSize = "{:0" + "{}".format(field.bitWidth) + "b}"
 					binFmt = binSize.format(e.value)
-					appendText += "		0b{}  - {} - {}".format(binFmt, e.name, 
+					appendText += "		0b{}  - {} - {}".format(binFmt, e.name,
 						e.description)
 
 		return appendText
