@@ -725,13 +725,31 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		"isPresent" of each IP-XACT register is added as generic boolean input.
 		Parameter look-up is performed for each found parameter.
 		"""
-		for reg in block.register:
-			if (reg.isPresent != ""):
-				paramName = self.parameter_lookup(reg.isPresent)
-				entity.generics[paramName] = LanDeclaration(paramName, value = 0)
-				entity.generics[paramName].value = "true"
-				entity.generics[paramName].type = "boolean"
-				entity.generics[paramName].specifier = "constant"
+		for param in self.pyXactComp.parameters.parameter:
+			for reg in block.register:
+
+				depends = False
+				if (param.parameterId in reg.isPresent):
+					depends = True
+
+				split_fields = self.split_reg_fields(reg)
+				for field in split_fields:
+					if (param.parameterId in field.isPresent):
+						depends = True
+
+				if (depends):
+					name = param.name.upper()
+					entity.generics[name] = LanDeclaration(name, value = 0)
+
+					if (param.type == "bit"):
+						entity.generics[name].type = "boolean"
+					elif (param.type == "int"):
+						entity.generics[name].type = "integer"
+					else:
+						print(f"Unsupported param type: {param.type} for parameter: {param.name}")
+						assert False
+
+					entity.generics[name].specifier = "constant"
 
 
 	def create_reg_block_template(self, block):
