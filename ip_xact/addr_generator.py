@@ -1,5 +1,5 @@
-################################################################################                                                     
-## 
+################################################################################
+##
 ## Register map generation tool
 ##
 ## Copyright (C) 2018 Ondrej Ille <ondrej.ille@gmail.com>
@@ -47,12 +47,12 @@ class IpXactAddrGenerator(metaclass=ABCMeta):
 	wrdWidthBit = None
 
 	# Word width in Bytes
-	wrdWidthByte = None 
+	wrdWidthByte = None
 
-	pyXactComp = None	
-	
+	pyXactComp = None
+
 	of = None
-	
+
 	def __init__(self, pyXactComp, memMap, wordWidth):
 		self.wrdWidthBit = wordWidth
 		self.wrdWidthByte = int(wordWidth / 8)
@@ -64,11 +64,11 @@ class IpXactAddrGenerator(metaclass=ABCMeta):
 			if map_inst.name == memMap:
 				self.memMap = map_inst
 
-		self.pyXactComp = pyXactComp		
+		self.pyXactComp = pyXactComp
 
 
 	def commit_to_file(self, of, text):
-		""" 
+		"""
 		Write a text into the output file
 		Arguments:
 			of			Open output file
@@ -76,20 +76,20 @@ class IpXactAddrGenerator(metaclass=ABCMeta):
 		"""
 		for line in text :
 			of.write(line)
-		
-	
-	
+
+
+
 	def set_of(self, of):
-		""" 
+		"""
 		Sets the output file to the internal output file of instance
 		Arguments:
 			of		Output file to set
 		"""
 		self.of = of
-	
-	
+
+
 	def move_till_text(self, of, text):
-		""" 
+		"""
 		Move till text in a file. The file must be opened for reading.
 		Arguments:
 			of			Output file
@@ -113,7 +113,7 @@ class IpXactAddrGenerator(metaclass=ABCMeta):
 			if (reg_wrd_addr == word_addr):
 				regs_in_wrd.append(reg)
 
-			# Exit upon last possible register (further are for sure in higher 
+			# Exit upon last possible register (further are for sure in higher
 			# words), no need to search further
 			if (reg.addressOffset > (word_addr + self.wrdWidthByte)):
 				break
@@ -122,7 +122,7 @@ class IpXactAddrGenerator(metaclass=ABCMeta):
 
 
 	def addr_reg_lookup(self, fieldReg):
-		""" 
+		"""
 		Search the "memMap" for register with the same address offset aligned
 		to memory word and return it.
 		Arguments:
@@ -150,12 +150,12 @@ class IpXactAddrGenerator(metaclass=ABCMeta):
 		E.g.:
 			register access type: read-writeOnce
 		    searched access type: write-Once
-			False is returned		
+			False is returned
 		"""
 		for access in accesses:
 			if (access == reg.access):
 				return True
-		return False		
+		return False
 
 
 	def reg_has_access_type(self, reg, accesses):
@@ -189,7 +189,7 @@ class IpXactAddrGenerator(metaclass=ABCMeta):
 		"""
 		Check if any field of a register has readAction set to "modify"
 		This indicates that special signal which indicates read from a
-		register should be placed. 
+		register should be placed.
 		"""
 		for field in sorted(reg.field, key=lambda a: a.bitOffset):
 			if (field.readAction == "modify"):
@@ -214,7 +214,7 @@ class IpXactAddrGenerator(metaclass=ABCMeta):
 				continue
 
 			if (reg.addressOffset < low_addr):
-				low_addr = self.align_addr_to_wrd(reg.addressOffset) 
+				low_addr = self.align_addr_to_wrd(reg.addressOffset)
 
 			if (reg.addressOffset > high_addr):
 				high_addr = self.align_addr_to_wrd(reg.addressOffset)
@@ -260,10 +260,10 @@ class IpXactAddrGenerator(metaclass=ABCMeta):
 		high_addr += self.wrdWidthByte
 
 		for wrd_addr in range(low_addr, high_addr, self.wrdWidthByte):
-			
+
 			# Check that on this memory word, there is a register exisiting
-			# with a given access type            
-			for s_reg in sorted(block.register, key=lambda a: a.addressOffset): 
+			# with a given access type
+			for s_reg in sorted(block.register, key=lambda a: a.addressOffset):
 
 				# Skip registers whose access type we are not interested in
 				if (not self.reg_has_access_type(s_reg, accesses)):
@@ -284,16 +284,16 @@ class IpXactAddrGenerator(metaclass=ABCMeta):
 		return None
 
 
-	def parameter_lookup(self, uid):
+	def parameter_lookup(self, expr):
 		"""
-		Search for paramater in loaded IP-XACT component. Returns name of
-		the parameter if found, false otherwise.
+		Returns the expression with parameters replaced by their actual name rather than UID.
 		"""
+		rv = expr
 		for parameter in self.pyXactComp.parameters.parameter:
-			if (parameter.parameterId == uid):
-				return parameter.name
+			if (parameter.parameterId in rv):
+				rv = rv.replace(parameter.parameterId, parameter.name)
 
-		return None
+		return rv
 
 
 	def get_reg_lock(self, reg):
@@ -342,7 +342,7 @@ class IpXactAddrGenerator(metaclass=ABCMeta):
 			remainder = field.resets.reset.value
 			for j in range(field.bitWidth):
 				if (remainder % 2 == 1):
-					rst_mask[field.bitOffset + j] = "1"				
+					rst_mask[field.bitOffset + j] = "1"
 				remainder = int(remainder / 2)
 
 		# Reverse the list, since std_logic_vector has opposite order than list!

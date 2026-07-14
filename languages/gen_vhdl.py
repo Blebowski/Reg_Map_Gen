@@ -677,14 +677,13 @@ class VhdlGenerator(LanBaseGenerator):
 		self.__wr_line("\n")
 
 
-	def create_if_generate(self, name, condition, value, gap=2):
+	def create_if_generate(self, name, condition, gap=2):
 		"""
 		Create "if generate" VHDL statement
 		Arguments:
 			TODO
 		"""
-		line = " " * gap + name + " : if (" + condition
-		line += " = " + value + ")" + " generate\n"
+		line = " " * gap + name + " : if (" + condition + ")" + " generate\n"
 
 		self.__wr_line(line)
 		self.append_line(" " * gap + "end generate " + name + ";\n")

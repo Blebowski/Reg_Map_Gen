@@ -517,17 +517,32 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
         is set, parameter name is searched in IP-XACT input and it's name is used
         as generic condition for register presence.
 		"""
-		# Write conditional generic expression if register isPresent property
-		# depends on IP-XACT Parameter
-		if (reg.isPresent != ""):
-			paramName = self.parameter_lookup(reg.isPresent)
-			self.hdlGen.create_if_generate(reg.name + "_present_gen_t",
-				paramName.upper(), "true", gap=4)
 
 		# Split fields if they span multiple bytes to at most 8-bit register instances
 		split_fields = self.split_reg_fields(reg)
 
 		for field in split_fields:
+
+			# Capital comment name
+			self.hdlGen.write_comment(reg.name.upper() + "[" + field.name.upper() + "]", gap = 4)
+
+			# Conditionally instantiated registers or fields
+			gen_cond = ""
+			gen_name = ""
+
+			if (reg.isPresent != "" or field.isPresent != ""):
+				gen_name = reg.name.lower() + "_" + field.name.lower()
+
+			if (field.isPresent != ""):
+				if (reg.isPresent != ""):
+					gen_cond = "(" + self.parameter_lookup(reg.isPresent)   + ") and (" + \
+									 self.parameter_lookup(field.isPresent) + ")"
+				else:
+					gen_cond = self.parameter_lookup(field.isPresent)
+
+
+			if (gen_name != ""):
+				self.hdlGen.create_if_generate(gen_name + "_present_gen_t", gen_cond, gap=4)
 
 			# Load register template path and create basic instance
 			if (self.get_reg_lock(reg)[0] == "true"):
@@ -546,8 +561,6 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 			reg_inst.intType = "entity"
 			reg_inst.value = reg.name.lower() + "_" + field.name.lower() + "_reg_comp"
 
-			self.hdlGen.write_comment(reg.name.upper() + "[" + field.name.upper() + "]", gap = 4)
-
 			# Fill generics of reg map component
 			self.fill_reg_inst_generics(reg, field, reg_inst)
 
@@ -558,24 +571,16 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 			self.hdlGen.format_entity_decl(reg_inst)
 			self.hdlGen.create_comp_instance(reg_inst)
 
-
-		# Pop end of generate statement determined by isPresent property. Append
-		# dummy drivers for case when parameter is false
-		if (reg.isPresent != ""):
-			self.hdlGen.commit_append_line(1)
-			self.hdlGen.wr_line("\n")
-			self.hdlGen.create_if_generate(reg.name + "_present_gen_f",
-				paramName.upper(), "false", gap=4)
-
-			#rst_val = self.calc_reg_rstval_mask(reg)
-			for field in sorted(reg.field, key=lambda a: a.bitOffset):
-				# TODO: This is hard-coded for current CTU CAN FD!
-				#		Takes into acocunt only FILTER registers, not arbitrary reset value!
+			# Pop generate scope for parametrized fields and add constant driver
+			if (gen_name != ""):
+				self.hdlGen.commit_append_line(1)
+				self.hdlGen.wr_line("\n")
+				self.hdlGen.create_if_generate(gen_name + "_present_gen_f",
+												"not(" + gen_cond + ")", gap=4)
 				self.hdlGen.create_signal_connection(
 					(block.name + "_out_i." + reg.name + "_" + field.name).lower(), "(others => '0')", gap = 8)
-
-			self.hdlGen.commit_append_line(1)
-			self.hdlGen.wr_line("\n")
+				self.hdlGen.commit_append_line(1)
+				self.hdlGen.wr_line("\n")
 
 
 	def fill_access_signaller_generics(self, reg, signaller_inst):
