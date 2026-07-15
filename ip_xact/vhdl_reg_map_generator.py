@@ -65,14 +65,16 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 	template_sources["access_signaller_template_path"] = "templates/read_access_signaler.vhd"
 	template_sources["cmn_reg_map_pkg"] = "templates/cmn_reg_map_pkg.vhd"
 
-
+	library = ""
 	of_pkg = None
 
-	def __init__(self, pyXactComp, memMap, wrdWidth):
+	def __init__(self, pyXactComp, memMap, wrdWidth, library):
 		super().__init__(pyXactComp, memMap, wrdWidth)
 
 		# By default VHDL generator is used
 		self.hdlGen = VhdlGenerator()
+
+		self.library = library
 
 
 	def set_hdl_generator(self, hdlGen):
@@ -881,7 +883,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 			self.hdlGen.wr_nl()
 
 		wrk_pkgs = [self.memMap.name.lower() + "_pkg.all", "cmn_reg_map_pkg.all"]
-		self.hdlGen.create_includes("ctu_can_fd_rtl", wrk_pkgs)
+		self.hdlGen.create_includes(self.library, wrk_pkgs)
 
 		# Create entity definition
 		entity = self.create_reg_block_template(block)

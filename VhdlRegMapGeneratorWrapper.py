@@ -1,5 +1,5 @@
-################################################################################                                                     
-## 
+################################################################################
+##
 ## Register map generation tool
 ##
 ## Copyright (C) 2018 Ondrej Ille <ondrej.ille@gmail.com>
@@ -25,8 +25,8 @@
 ###############################################################################
 
 ###############################################################################
-##   
-##   Class for generation of VHDL register map entity from IP-XACT 
+##
+##   Class for generation of VHDL register map entity from IP-XACT
 ##   specification.
 ##
 ##	Revision history:
@@ -59,29 +59,30 @@ class VhdlRegMapGeneratorWrapper():
 	# Name of the IP-XACT Memory map which should be used for VHDL package generatio.
 	memMap = None
 
-	# Size of the access bus word. Register bit field offsets are concatenated into 
+	# Size of the access bus word. Register bit field offsets are concatenated into
 	# word width size instead of simple offset from beginning of register. (E.g. 32 bit  ->
 	# bitfields from first four 8-bit register are concatenated into 32 bit values)
 	wordWidth = 32
 
-	# When set to "True" read data are read with one clock cycle delay. When set to 
+	# When set to "True" read data are read with one clock cycle delay. When set to
 	# false read data are available within the same clock cycle
 	registeredRead = True
 
 	# Output directory where to write VHDL register map implementation.
 	outDir = ""
 
-
 	# Variable for loaded license Text
 	lic_text = ""
 
+	# Library to include the RTL from
+	library = ""
 
 	def write_reg_map_package(self, vhdlGen, dir_path):
 		"""
 		Create package with records for register blocks within an address block.
 		"""
 		reg_map_pkg_name = os.path.join(dir_path, vhdlGen.memMap.name.lower() + "_pkg.vhd")
-		
+
 		of = open(reg_map_pkg_name, 'w')
 		vhdlGen.set_of(of)
 
@@ -99,7 +100,7 @@ class VhdlRegMapGeneratorWrapper():
 		"""
 		for block in vhdlGen.memMap.addressBlock:
 			print("Processing memory block: " + block.name)
-			
+
 			if (block.usage == "register"):
 				file_path = os.path.join(dir_path, block.name.lower() + "_reg_map.vhd")
 
@@ -141,7 +142,7 @@ class VhdlRegMapGeneratorWrapper():
 			component.load(f)
 
 			# Create new VHDL register map generator
-			vhdlGen = VhdlRegMapGenerator(component, self.memMap, self.wordWidth)
+			vhdlGen = VhdlRegMapGenerator(component, self.memMap, self.wordWidth, self.library)
 
 			# Load license text
 			self.lic_text = ""
