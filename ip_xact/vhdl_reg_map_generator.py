@@ -579,8 +579,9 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 				self.hdlGen.wr_line("\n")
 				self.hdlGen.create_if_generate(gen_name + "_present_gen_f",
 												"not(" + gen_cond + ")", gap=4)
+				value = "'0'" if (field.bitWidth == 1) else "(others => '0')"
 				self.hdlGen.create_signal_connection(
-					(block.name + "_out_i." + reg.name + "_" + field.name).lower(), "(others => '0')", gap = 8)
+					(block.name + "_out_i." + reg.name + "_" + field.name).lower(), value, gap = 8)
 				self.hdlGen.commit_append_line(1)
 				self.hdlGen.wr_line("\n")
 
