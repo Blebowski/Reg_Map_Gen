@@ -1,5 +1,5 @@
-################################################################################                                                     
-## 
+################################################################################
+##
 ## Register map generation tool
 ##
 ## Copyright (C) 2018 Ondrej Ille <ondrej.ille@gmail.com>
@@ -28,7 +28,7 @@
 ##
 ##   Address map generator to Lyx document from IP-XACT parsed memory map
 ##	 with pyXact framework.
-## 
+##
 ##	Revision history:
 ##		25.01.2018	First implementation
 ##
@@ -66,7 +66,7 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 
 		self.genFieldDesc = str_arg_to_bool(str(genFiDesc))
 		self.genRegions = str_arg_to_bool(str(genRegions))
-	
+
 
 	def commit_to_file(self):
 		for line in self.lyxGen.out :
@@ -85,7 +85,7 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 
 		param_name = self.parameter_lookup(reg.isPresent)
 
-		# Not conditioned by any parameter -> Keep it!	
+		# Not conditioned by any parameter -> Keep it!
 		if (param_name == None):
 			return True
 
@@ -143,11 +143,11 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 		retVal = [[], [], [], []]
 		subRegIndex = 0
 		highVal = 0
-		
+
 		for i in range(0, int(reg.size / 8)):
 			for j in range(0, 8):
 				retVal[i].append([])
-				
+
 				# Check if such a field exists
 				fieldExist = False
 				for field in sorted(reg.field, key=lambda a: a.bitOffset):
@@ -156,19 +156,19 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 						field.bitOffset + field.bitWidth > tmp):
 						fieldExist = True
 						break;
-				
+
 				# Insert the field or reserved field
 				if (fieldExist):
 					fieldName = field.name
 					if (field.resets != None and field.resets.reset != None):
-						fieldRst = self.getBit(field.resets.reset.value, 
+						fieldRst = self.getBit(field.resets.reset.value,
 											tmp - field.bitOffset)
 					else:
 						fieldRst = "X"
-					
+
 					# If the field is overllaped over several 8 bit registers
 					# add index to define it more clearly
-					if (int(field.bitOffset / 8) != 
+					if (int(field.bitOffset / 8) !=
 						int((field.bitOffset + field.bitWidth - 1) / 8)):
 						hInd = min(field.bitOffset + field.bitWidth - 1,
 									((i + 1) * 8) - 1)
@@ -184,48 +184,48 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 				else:
 					fieldName = "Reserved"
 					fieldRst = "-"
-				
+
 				retVal[i][j].append(fieldName)
-				retVal[i][j].append(fieldRst)	
+				retVal[i][j].append(fieldRst)
 		return retVal
-			
+
 
 	def write_reg_field_table(self, reg):
 		"""
 		"""
 
 		regFields = self.reg_unwrap_fields(reg)
-		
+
 		for i in reversed(range(1, int(reg.size / 8 + 1))):
 			table = self.lyxGen.build_table(9, 3)
-			
+
 			# Set the width
-			self.lyxGen.set_columns_option(table, range(1,9),  
+			self.lyxGen.set_columns_option(table, range(1,9),
 							[["width", "1.4cm"]  for j in range(1, 9)])
-			
+
 			rows = [[row, j + 1] for j in range(8) for row in range(3)]
-			
+
 			# Title row
 			self.lyxGen.set_cell_object(table, 0, 0, "Bit index")
 			bitIndexes = [str((8 * i) - j) for j in range(1,9)]
 			self.lyxGen.set_cells_object(table, [[0, j + 1] for j in range(8)],
 												bitIndexes)
-			
+
 			# Field name row
 			self.lyxGen.set_cell_object(table, 1, 0, "Field name")
 			cells = [[1, j + 1] for j in range(8)]
 			fieldNames = [regFields[i - 1][j][0] for j in range(8)]
 			self.lyxGen.set_cells_object(table, cells, fieldNames)
-			
+
 			# Restart value row
 			self.lyxGen.set_cell_object(table, 2, 0, "Reset value")
 			cells = [[2, j + 1] for j in range(8)]
 			rstVals = [regFields[i - 1][j][1] for j in range(8)]
 			self.lyxGen.set_cells_object(table, cells, rstVals)
-			
+
 			# Merge adjacent fields with the same names
 			self.lyxGen.merge_common_fields(table, [1], startCol=1)
-		    
+
 			# Set header colors
 			self.lyxGen.set_cells_color(table, [[0, i] for i in range(9)], "gray")
 			self.lyxGen.set_cells_color(table, [[1, 0], [2, 0]], "cyan")
@@ -246,7 +246,7 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 		# Add the Section title
 		self.lyxGen.write_layout_text("Subsection", "{}\n".format(reg.name),
 											label="label")
-		
+
 		# Register type, address, size and description
 		self.lyxGen.write_layout_text("Description", "Type: {}\n".format(
 											reg.access))
@@ -283,13 +283,13 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 		"""
 		"""
 		# Memory type blocks dont need to be described by field! We use it
-		# to express mapping to other registers and thus It means we dont 
+		# to express mapping to other registers and thus It means we dont
 		# want unnecessary words described!
 		if (block.usage == "memory"):
 			return
-	
+
 		for reg in sorted(block.register, key=lambda a: a.addressOffset):
-			
+
 			if (self.is_reg_present(reg) == False):
 				continue
 
@@ -312,7 +312,7 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 		"""
 		self.lyxGen.write_layout_text("Chapter", "{}\n".format(
 											self.memMap.displayName), label="label")
-		
+
 		self.lyxGen.write_layout_text("Standard", "{}\n".format(self.memMap
 										.description))
 
@@ -321,17 +321,17 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 		"""
 		"""
 		table = self.lyxGen.build_table(2, len(memMap.addressBlock) + 1)
-		self.lyxGen.set_columns_option(table, range(0,2),  
+		self.lyxGen.set_columns_option(table, range(0,2),
 							[["width", "4cm"]  for j in range(0, 2)])
-		
+
 		titleCells = [[0, 0] , [0, 1]]
 		nameCells = [[i, 0] for i in range(1, len(memMap.addressBlock) + 1)]
 		addrCells = [[i, 1] for i in range(1, len(memMap.addressBlock) + 1)]
-		
+
 		nameVals = [block.displayName for block in memMap.addressBlock]
 		addrVals = ["0x{:03X}".format(block.baseAddress) for block in memMap.addressBlock]
 		titleVals = ["Memory region", "Address offset"]
-		
+
 		self.lyxGen.set_cells_object(table, nameCells, nameVals)
 		self.lyxGen.set_cells_object(table, addrCells, addrVals)
 		self.lyxGen.set_cells_object(table, titleCells, titleVals)
@@ -339,14 +339,14 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 		self.lyxGen.set_cells_color(table, [[0, 0], [0, 1]], "gray")
 
 		self.lyxGen.insert_table(table)
-	
-	
+
+
 	def calc_block_table_len(self, block):
 		"""
 		"""
 		marks = [0] * (int (block.range / (block.width / 8) ))
 		for reg in sorted(block.register, key=lambda x: x.addressOffset):
-		
+
 			if (self.is_reg_present(reg) == False):
 				continue
 
@@ -359,8 +359,8 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 				len += 1
 			change = True if (mark == 1) else False
 		return len
-		
-	
+
+
 	def write_mem_map_reg_single(self, table, reg, row):
 		"""
 		"""
@@ -373,7 +373,7 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 		self.lyxGen.set_cells_text_label(table, cells, ["hyperref" for i in
 											range(0, len(cells))])
 
-	
+
 	def write_mem_map_reg_table(self, block):
 		"""
 		"""
@@ -386,12 +386,12 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 
 		# Create the header
 		cells = [[0, i] for i in range(5)]
-		text = ["Bits [{}:{}]".format((i + 1) * 8 - 1, i * 8) 
+		text = ["Bits [{}:{}]".format((i + 1) * 8 - 1, i * 8)
 					for i in reversed(range(0, self.wrdWidthByte))]
 		text += ["Address offset"]
 		self.lyxGen.set_cells_object(table, cells, text)
 
-		self.lyxGen.set_columns_option(table, range(0,4),  
+		self.lyxGen.set_columns_option(table, range(0,4),
 							[["width", "3cm"]  for j in range(0, 4)])
 		self.lyxGen.set_column_option(table, 4, "width", "1.5cm")
 
@@ -405,7 +405,7 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 		addr = 0
 		for reg in sorted(block.register, key=lambda x: x.addressOffset):
 
-			# Skip registers 
+			# Skip registers
 			if (self.is_reg_present(reg) == False):
 				continue;
 
@@ -416,17 +416,17 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 				row += 2
 			addr += regDiff
 			self.write_mem_map_reg_single(table, reg, row)
-			self.lyxGen.set_cell_object(table, row, 4, 
+			self.lyxGen.set_cell_object(table, row, 4,
 						"0x{:X}".format(4 * math.floor(reg.addressOffset / 4) +
-										 block.baseAddress))				
-		
+										 block.baseAddress))
+
 		self.lyxGen.merge_common_fields(table, [i for i in range(1, tableLen + 1)],
 									endCol=4)
 
 		# Set header color
 		self.lyxGen.set_cells_color(table, [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4]], "gray")
 
-		self.lyxGen.insert_table(table)		
+		self.lyxGen.insert_table(table)
 
 
 ################################################################################
@@ -435,11 +435,11 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 	def write_mem_map_addr(self):
 		if (self.genRegions):
 			self.write_mem_map_regions(self.memMap)
-		
-			
+
+
 ################################################################################
 # Write the bitfield map into the output file
-################################################################################	
+################################################################################
 	def write_mem_map_fields(self):
 		for block in self.memMap.addressBlock:
 			self.lyxGen.insert_new_page()
@@ -452,8 +452,8 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 #
 # Arguments:
 #  of		 	- Output file to write
-################################################################################	
-	def write_mem_map_both(self):        
+################################################################################
+	def write_mem_map_both(self):
 		self.write_mem_map_title()
 		self.write_mem_map_addr()
 		self.write_mem_map_fields()
@@ -463,7 +463,7 @@ class LyxAddrGenerator(IpXactAddrGenerator):
 # Write register fields constants of single register
 #
 # Arguments:
-################################################################################		
-	def write_reg(self, reg, writeFields, writeRstVal, writeEnums): 
+################################################################################
+	def write_reg(self, reg, writeFields, writeRstVal, writeEnums):
 		pass
-	
+

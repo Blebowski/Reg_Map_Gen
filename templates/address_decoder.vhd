@@ -95,14 +95,14 @@ begin
     ---------------------------------------------------------------------------
     -- Combinational Address decoder
     ---------------------------------------------------------------------------
-    addr_dec_gen : for i in 0 to address_entries - 1 generate
+    g_addr_dec : for i in 0 to address_entries - 1 generate
         constant l_ind : natural := address_width * i;
         constant h_ind : natural := (address_width * (i + 1)) - 1;
     begin
         addr_dec_i(i) <= '1' when (address = addr_vect(h_ind downto l_ind))
                              else
                          '0';
-    end generate addr_dec_gen;
+    end generate g_addr_dec;
 
 
     ---------------------------------------------------------------------------
@@ -115,8 +115,8 @@ begin
     ---------------------------------------------------------------------------
     -- Registering / Not-registering output
     ---------------------------------------------------------------------------
-    addr_dec_reg_true_gen : if (registered_out) generate
-        addr_dec_reg_proc : process(res_n, clk_sys)
+    g_addr_dec_reg_t : if (registered_out) generate
+        p_addr_dec_reg : process(res_n, clk_sys)
         begin
             if (res_n = '0') then
                 addr_dec <= (OTHERS => '0');
@@ -126,11 +126,11 @@ begin
 
             end if;
         end process;
-    end generate addr_dec_reg_true_gen;
+    end generate g_addr_dec_reg_t;
 
-    addr_dec_reg_false_gen : if (not registered_out) generate
+    g_addr_dec_reg_f : if (not registered_out) generate
         addr_dec <= addr_dec_enabled_i;
-    end generate addr_dec_reg_false_gen;
+    end generate g_addr_dec_reg_f;
 
 
     ---------------------------------------------------------------------------

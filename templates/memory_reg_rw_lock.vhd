@@ -105,9 +105,9 @@ begin
     ----------------------------------------------------------------------------
     -- Register instance
     ----------------------------------------------------------------------------
-    bit_gen : for i in 0 to data_width - 1 generate
+    g_bit : for i in 0 to data_width - 1 generate
 
-        reg_access_proc : process(clk_sys, res_n)
+        p_reg_access : process(clk_sys, res_n)
         begin
             if (res_n = '0') then
                 reg_value_r(i)  <= reset_value_i(i);
@@ -118,7 +118,7 @@ begin
             end if;
         end process;
 
-    end generate bit_gen;
+    end generate g_bit;
 
     ----------------------------------------------------------------------------
     -- Register to output propagation

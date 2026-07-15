@@ -339,7 +339,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 
 		addr_dec = self.hdlGen.load_entity_template(path)
 		addr_dec.isInstance = True
-		addr_dec.value = addr_dec.name.lower() + "_" + block.name.lower() + "_comp"
+		addr_dec.value = "i_" + addr_dec.name.lower() + "_" + block.name.lower()
 		addr_dec.gap = 2
 
 		# Connect generics
@@ -470,6 +470,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 				new_field.name += "_slice_{}".format(slice_cnt)
 				new_field.bitOffset = low_index
 				new_field.bitWidth = i * 8 - low_index
+				new_field.isPresent = field.isPresent
 
 				new_field.is_slice = True
 				new_field.bit_pos_low = width_so_far
@@ -498,6 +499,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 			new_field.orig_name = field.name
 			new_field.bitOffset = low_index
 			new_field.bitWidth = high_index - low_index + 1
+			new_field.isPresent = field.isPresent
 
 			new_field.bit_pos_low = width_so_far
 			new_field.bit_pos_high = width_so_far + new_field.bitWidth - 1
@@ -535,16 +537,16 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 			if (reg.isPresent != "" or field.isPresent != ""):
 				gen_name = reg.name.lower() + "_" + field.name.lower()
 
-			if (field.isPresent != ""):
-				if (reg.isPresent != ""):
-					gen_cond = "(" + self.parameter_lookup(reg.isPresent)   + ") and (" + \
-									 self.parameter_lookup(field.isPresent) + ")"
-				else:
-					gen_cond = self.parameter_lookup(field.isPresent)
-
+			if (field.isPresent != "" and reg.isPresent != ""):
+				gen_cond = "(" + self.parameter_lookup(reg.isPresent)   + ") and (" + \
+								 self.parameter_lookup(field.isPresent) + ")"
+			elif (reg.isPresent != ""):
+				gen_cond = self.parameter_lookup(reg.isPresent)
+			elif (field.isPresent != ""):
+				gen_cond = self.parameter_lookup(field.isPresent)
 
 			if (gen_name != ""):
-				self.hdlGen.create_if_generate(gen_name + "_present_gen_t", gen_cond, gap=4)
+				self.hdlGen.create_if_generate("g_" + gen_name + "_t", gen_cond, gap=4)
 
 			# Load register template path and create basic instance
 			if (self.get_reg_lock(reg)[0] == "true"):
@@ -561,7 +563,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 			reg_inst = self.hdlGen.load_entity_template(path)
 			reg_inst.isInstance = True
 			reg_inst.intType = "entity"
-			reg_inst.value = reg.name.lower() + "_" + field.name.lower() + "_reg_comp"
+			reg_inst.value = "i_" + reg.name.lower() + "_" + field.name.lower() + "_reg"
 
 			# Fill generics of reg map component
 			self.fill_reg_inst_generics(reg, field, reg_inst)
@@ -577,11 +579,21 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 			if (gen_name != ""):
 				self.hdlGen.commit_append_line(1)
 				self.hdlGen.wr_line("\n")
-				self.hdlGen.create_if_generate(gen_name + "_present_gen_f",
+				self.hdlGen.create_if_generate("g_" + gen_name + "_f",
 												"not(" + gen_cond + ")", gap=4)
 				value = "'0'" if (field.bitWidth == 1) else "(others => '0')"
-				self.hdlGen.create_signal_connection(
-					(block.name + "_out_i." + reg.name + "_" + field.name).lower(), value, gap = 8)
+
+				reg_name = reg.name + "_" + field.orig_name
+				reg_value = block.name + "_out_i." + reg_name
+
+				if field.is_slice:
+					if field.bitWidth == 1:
+						range_str = "({})".format(field.bit_pos_low)
+					else:
+						range_str = "({} downto {})".format(field.bit_pos_high, field.bit_pos_low)
+					reg_value += range_str
+
+				self.hdlGen.create_signal_connection(reg_value.lower(), value, gap = 8)
 				self.hdlGen.commit_append_line(1)
 				self.hdlGen.wr_line("\n")
 
@@ -627,7 +639,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		signaller_inst = self.hdlGen.load_entity_template(path)
 		signaller_inst.isInstance = True
 		signaller_inst.intType = "entity"
-		signaller_inst.value = reg.name.lower() + "_access_signaller_comp"
+		signaller_inst.value = "i_" + reg.name.lower() + "_access_signaller"
 
 		# Fill generic values of access signaller
 		self.fill_access_signaller_generics(reg, signaller_inst)
@@ -687,7 +699,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		self.hdlGen.wr_line(f"\n        (others => '0') when others;\n\n")
 
 		self.hdlGen.write_comment("Output register", gap = 4)
-		self.hdlGen.wr_line(f"    read_data_reg_proc : process(res_n, clk_sys)\n")
+		self.hdlGen.wr_line(f"    p_read_data_reg : process(res_n, clk_sys)\n")
 		self.hdlGen.wr_line(f"    begin\n")
 		self.hdlGen.wr_line(f"        if (res_n = '0') then\n")
 		self.hdlGen.wr_line(f"            r_data <= (others => '0');\n")
@@ -746,6 +758,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 
 					if (param.type == "bit"):
 						entity.generics[name].type = "boolean"
+						entity.generics[name].value = "true"
 					elif (param.type == "int"):
 						entity.generics[name].type = "integer"
 					else:

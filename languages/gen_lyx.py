@@ -1,5 +1,5 @@
-################################################################################                                                     
-## 
+################################################################################
+##
 ## Register map generation tool
 ##
 ## Copyright (C) 2018 Ondrej Ille <ondrej.ille@gmail.com>
@@ -25,9 +25,9 @@
 ###############################################################################
 
 ###############################################################################
-##   
+##
 ##   A simple Lyx document generator.
-##	
+##
 ##	Revision history:
 ##		25.01.2018	First Implementation
 ##
@@ -46,11 +46,11 @@ from pyXact_generator.gen_lib import *
 from pyXact_generator.languages.gen_base import BaseGenerator
 
 class LyxGenerator(BaseGenerator):
-	
+
 	####################################################################
 	# Basic Lyx styles which are assumed to be universal...
 	####################################################################
-	
+
 	# layouts (used with "\begin_layout")
 	stdLayouts = ["Standard", "LyX-Code", "Quotation", "Quote", "Verse",
 					"Verbatim", "Verbatim*", "Plain Layout"]
@@ -58,7 +58,7 @@ class LyxGenerator(BaseGenerator):
 	stdRefPrefixes = ["Part", "Chapter", "Section", "Subsection",
 						"Subsubsection", "Paragraph", "Subparagraph"]
 	supStyles = [stdLayouts, stdLists, stdRefPrefixes]
-	
+
 	# TODO: Should we also do support of insets?? I dont want to complicate
 	#       it so lets just leave little responsibility on the one who
 	#       is using the generator
@@ -84,8 +84,8 @@ class LyxGenerator(BaseGenerator):
 				if (styleIter == layout):
 					return True
 		return False
-	
-	
+
+
 	def insert_layout(self, layout):
 		"""
 		Insert lyx layout into the generator output (Chapter, Section etc...)
@@ -96,8 +96,8 @@ class LyxGenerator(BaseGenerator):
 			return False
 		self.wr_line("\\begin_layout {}\n".format(layout))
 		self.append_line("\\end_layout\n")
-	
-	
+
+
 	def insert_inset(self, inset, options=[]):
 		"""
 		Insert lyx inset into the generator output (Text, Tabular, ERT)
@@ -108,8 +108,8 @@ class LyxGenerator(BaseGenerator):
 		for option in options:
 			self.wr_line("{} {}\n".format(option[0], option[1]))
 		self.append_line("\\end_inset\n")
-	
-	
+
+
 	def insert_html_table_tag(self, tag, tagOptions=None, endTag=False):
 		"""
 		Insert lyx HTML Table Tag.
@@ -124,13 +124,13 @@ class LyxGenerator(BaseGenerator):
 		if (tagOptions != None):
 			for optName, optVal in sorted(tagOptions.items()):
 				optStr = optStr + ' {}="{}"'.format(optName, optVal)
-		
+
 		self.wr_line("<{}{}>\n".format(tag, optStr))
-		
+
 		if (endTag):
 			self.append_line("</{}>\n".format(tag))
-	
-	
+
+
 	def insert_text_options(self, textOptions):
 		"""
 		Insert Lyx Text options.
@@ -142,7 +142,7 @@ class LyxGenerator(BaseGenerator):
 		for textOptKey,textOptVal in sorted(textOptions.items()):
 			self.wr_line("\\{} {}\n".format(textOptKey, textOptVal))
 
-	
+
 	def insert_table_cell(self, cell):
 		"""
 		Insert Table cell into the into the generator output.
@@ -160,7 +160,7 @@ class LyxGenerator(BaseGenerator):
 										"hyperref" - creates reference
 					cellColor		- Background color of the cell
 		"""
-		self.insert_html_table_tag("cell", cell[0], endTag=True) 
+		self.insert_html_table_tag("cell", cell[0], endTag=True)
 		self.insert_inset("Text")
 		self.wr_line("\n")
 		self.write_layout_text("Plain Layout", cell[2], textOptions=cell[1],
@@ -178,7 +178,7 @@ class LyxGenerator(BaseGenerator):
 			return re.sub("\\" + char, nl_ins_str + char, text)
 		else:
 			return text
-			
+
 
 	def insert_table(self, table):
 		"""
@@ -202,34 +202,34 @@ class LyxGenerator(BaseGenerator):
 		"""
 		tableOptions = table[0]
 		cells = table[1]
-		
+
 		self.insert_layout("Standard")
 		self.wr_line("\\noindent\n")
 		self.wr_line("\\align center\n")
-		
+
 		self.insert_inset("Tabular")
-		tableDimension = {"version" : "3", "rows" : '{}'.format(len(cells)), 
+		tableDimension = {"version" : "3", "rows" : '{}'.format(len(cells)),
 						"columns" : '{}'.format(len(cells[0]))}
 		self.insert_html_table_tag("lyxtabular", tableDimension, True)
-		
+
 		for option in tableOptions:
 			self.insert_html_table_tag(option[0], tagOptions=option[1],
 											endTag=False)
-		
+
 		for row in cells:
 			self.insert_html_table_tag("row", endTag=True)
 			for cell in row:
 				self.insert_table_cell(cell)
 			self.commit_append_line(1)
-	
+
 		self.commit_append_line(1)
 		self.wr_line("\n")
 		self.commit_append_line(1)
 		self.wr_line("\n")
 		self.wr_line("\n")
 		self.commit_append_line(1)
-	
-	
+
+
 	def replace_reserved_sign(self, text):
 		"""
 		Replace reserved character of "_" in the lyx hypertext function.
@@ -248,8 +248,8 @@ class LyxGenerator(BaseGenerator):
 			else:
 				retVal += char
 		return retVal
-	
-	
+
+
 	def insert_ref(self, labelText, ref):
 		"""
 		Insert label or reference into the generator output.
@@ -258,7 +258,7 @@ class LyxGenerator(BaseGenerator):
 			ref			Label type. At the moment can be:
 							"label" - LabelText is written and label object is
 									  created directly behind.
-							"hyperref" - Hyperref object is created with 
+							"hyperref" - Hyperref object is created with
 										 "labelText" placed in the hyperref.
 										This makes the reference to the label
 										with the same name if clicked on in PDF.
@@ -267,15 +267,15 @@ class LyxGenerator(BaseGenerator):
 		self.wr_line("status open\n")
 		self.insert_layout("Plain Layout")
 		self.wr_line("\\backslash\n")
-		
+
 		if (ref == "label"):
 			labelStr = "{"+"{}".format(labelText)+"}"
 			self.wr_line("{}{}".format(ref, labelStr))
-		
+
 		if (ref == "hyperref"):
 			refString = "{" + self.replace_reserved_sign(labelText) + "}"
 			self.wr_line("{}[{}]{}".format(ref, labelText, refString))
-	
+
 		self.commit_append_line(2)
 
 
@@ -283,13 +283,13 @@ class LyxGenerator(BaseGenerator):
 		"""
 		Insert color inset to a table cell
 		Arguments:
-			color	
+			color
 		"""
 		self.insert_inset("ERT")
 		self.wr_line("status open\n")
 		self.insert_layout("Plain Layout")
 		self.wr_line("\\backslash\n")
-		
+
 		colorStr = "cellcolor{" + color+"}\n"
 		self.wr_line(colorStr)
 
@@ -330,7 +330,7 @@ class LyxGenerator(BaseGenerator):
 			self.insert_color(color)
 
 		self.commit_append_line(1)
-	
+
 
 	def build_table_options(self, columnCount, rowCount, longTable=False):
 		"""
@@ -349,15 +349,15 @@ class LyxGenerator(BaseGenerator):
 		if (longTable):
 			optionsDict["islongtable"] = "true"
 			optionsDict["longtabularalignment"] = "center"
-		
+
 		tableOptions.append(["features", optionsDict])
 
 		for i in range(0, columnCount):
 			tableOptions.append(["column", {"alignment" : "center" ,
 											"valignment" : "top"}])
 		return tableOptions
-	
-	
+
+
 	def build_table_cells(self, columnCount, rowCount, defCellText):
 		"""
 		Creates default table cell objects with standard cell attributes.
@@ -373,14 +373,14 @@ class LyxGenerator(BaseGenerator):
 		stdCellAttributes = {"alignment" : "center", "valignment" : "top",
 						"topline" : "true", "leftline" : "true",
 						"usebox" : "none"}
-		
+
 		for row in range(0, rowCount):
 			tableCells.append([])
 			for column in range(0, columnCount):
-				
+
 				tableCells[row].append([])
 				actCell = tableCells[row][column]
-				
+
 				actCell.append(stdCellAttributes.copy())
 				if (column == columnCount - 1):
 					actCell[0]["rightline"] = "true"
@@ -391,13 +391,13 @@ class LyxGenerator(BaseGenerator):
 				actCell.append(None)
 				# Color
 				actCell.append(None)
-				
+
 		return tableCells
-				
-	
+
+
 	def build_table(self, columnCount, rowCount, defCellText="Reserved", longTable=False):
 		"""
-		Builds the table 
+		Builds the table
 		Arguments:
 			columnCount		Number of table columns
 			rowCount		Number of table rows
@@ -406,7 +406,7 @@ class LyxGenerator(BaseGenerator):
 			New table object with structure as "table" argument in "insert_table"
 			function.
 		"""
-		table = []	
+		table = []
 		tableOptions = self.build_table_options(columnCount, rowCount, longTable)
 		tableCells = self.build_table_cells(columnCount, rowCount, defCellText)
 		table.append(tableOptions)
@@ -421,7 +421,7 @@ class LyxGenerator(BaseGenerator):
 			table			Table object as in "insert_table" function.
 			column			Index of the column at which to set the option.
 			optKey			Option key to set (e.g. "alignment")
-			optVal			Option value to be set to the option given by 
+			optVal			Option value to be set to the option given by
 							"optKey"
 		"""
 		table[0][column + 1][1][optKey] = optVal
@@ -435,12 +435,12 @@ class LyxGenerator(BaseGenerator):
 			column			Index of the cell column at which to set the option
 			row				Index of the cell row at which to set the option
 			optKey			Option key to set (e.g. "bottomline", "multicolumn")
-			optVal			Option value to be set to the option given by 
+			optVal			Option value to be set to the option given by
 							"optKey"
 		"""
 		table[1][row][column][0][optKey] = optVal
-	
-	
+
+
 	def set_cell_object(self, table, row, column, object):
 		"""
 		Set text in the cell object of a table
@@ -451,7 +451,7 @@ class LyxGenerator(BaseGenerator):
 			object			Text to be set
 		"""
 		table[1][row][column][2] = object
-		
+
 
 	def set_cell_text_prop(self, table, row, column, propName, propVal):
 		"""
@@ -464,8 +464,8 @@ class LyxGenerator(BaseGenerator):
 			propVal			Text property value
 		"""
 		table[1][row][column][1][propName] = propVal
-	
-	
+
+
 	def set_cell_text_label(self, table, row, column, label):
 		"""
 		Set label in the cell object.
@@ -483,7 +483,7 @@ class LyxGenerator(BaseGenerator):
 		"""
 		table[1][row][column][3] = label
 
-		
+
 
 	def set_columns_option(self, table, columns, opPairs):
 		"""
@@ -519,15 +519,15 @@ class LyxGenerator(BaseGenerator):
 		"""
 		for cell,opPair in zip(cells, opPairs):
 			table[1][cell[0]][cell[1]][0][opPair[0]] = opPair[1]
-	
-	
+
+
 	def set_cells_text_label(self, table, cells, labels):
 		"""
 		Extended function "set_cell_text_label" for multiple cells.
 		Arguments:
 			table			Table object as in "insert_table" function.
 			cells			List of cell to be set the label on
-			labels			List of label values to set. 
+			labels			List of label values to set.
 		"""
 		for cell,label in zip(cells, labels):
 			self.set_cell_text_label(table, cell[0], cell[1], label)
@@ -579,9 +579,9 @@ class LyxGenerator(BaseGenerator):
 							mcVal = "1"
 							highInd = j
 						prevName = cell[2]
-						self.set_cell_option(table, i, j, "multicolumn", 
+						self.set_cell_option(table, i, j, "multicolumn",
 							mcVal)
-					
+
 					# Set the right panel if end is present
 					if (lowInd == len(row) - 1):
 						self.set_cell_option(table, i, highInd,
@@ -595,15 +595,15 @@ class LyxGenerator(BaseGenerator):
 		self.insert_layout("Standard")
 		self.insert_inset("Newpage newpage")
 		self.commit_append_line(2)
-	
-	
+
+
 	def write_comm_line(self, gap=2):
 		"""
 		Write comment line to the lyx document
 		"""
 		self.__wr_line('{:{fill}<78}\n'.format(" " * gap, fill=self.commentSign))
-		
-		
+
+
 	def write_comment(self, input, gap, caption=None, small=False):
 		"""
 		Write comment to the lyx document
@@ -623,4 +623,4 @@ class LyxGenerator(BaseGenerator):
 				break
 		self.append_line("\end_document\n")
 		self.append_line("\end_body\n")
-	
+
