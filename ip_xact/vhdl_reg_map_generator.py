@@ -350,7 +350,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 
 		# Connect ports
 		addr_dec.ports["clk_sys"].value = "clk_sys"
-		addr_dec.ports["res_n"].value = "res_n"
+		addr_dec.ports["rst_n"].value = "rst_n"
 
 		addr_indices = self.calc_addr_indices(block)
 		addr_str =  "address(" + str(addr_indices[0])
@@ -407,7 +407,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		Fill ports for register instance from IP-XACT register object
 		"""
 		reg_inst.ports["clk_sys"].value = "clk_sys"
-		reg_inst.ports["res_n"].value = "res_n"
+		reg_inst.ports["rst_n"].value = "rst_n"
 
 		# If register has single field, do not append field name, most
 		# likely the same as name of the register!
@@ -612,7 +612,7 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		object.
 		"""
 		signaller_inst.ports["clk_sys"].value = "clk_sys"
-		signaller_inst.ports["res_n"].value = "res_n"
+		signaller_inst.ports["rst_n"].value = "rst_n"
 
 		# Get word index from address decoder
 		reg_sel_index = self.get_wrd_index(block, reg) - 1
@@ -699,9 +699,9 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		self.hdlGen.wr_line(f"\n        (others => '0') when others;\n\n")
 
 		self.hdlGen.write_comment("Output register", gap = 4)
-		self.hdlGen.wr_line(f"    p_read_data_reg : process(res_n, clk_sys)\n")
+		self.hdlGen.wr_line(f"    p_read_data_reg : process(rst_n, clk_sys)\n")
 		self.hdlGen.wr_line(f"    begin\n")
-		self.hdlGen.wr_line(f"        if (res_n = '0') then\n")
+		self.hdlGen.wr_line(f"        if (rst_n = '0') then\n")
 		self.hdlGen.wr_line(f"            r_data <= (others => '0');\n")
 		self.hdlGen.wr_line(f"        elsif (rising_edge(clk_sys)) then\n")
 		self.hdlGen.wr_line(f"            if (cs = '1' and read = '1') then\n")
