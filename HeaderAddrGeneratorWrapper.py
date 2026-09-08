@@ -1,5 +1,5 @@
-################################################################################                                                     
-## 
+################################################################################
+##
 ## Register map generation tool
 ##
 ## Copyright (C) 2018 Ondrej Ille <ondrej.ille@gmail.com>
@@ -25,12 +25,12 @@
 ###############################################################################
 
 ###############################################################################
-##   
+##
 ##   Class for generation of C header from IP-XACT specification. Register
 ##   map addresses, bit field offsets and enums are generated. Two separate
 ##   register maps can be specified: one for bit fields, one for addresses.
-##   
-##   In case of CAN FD Core the register map is specified with two register 
+##
+##   In case of CAN FD Core the register map is specified with two register
 ##   maps. 8-bit map with register fields described. 32 bit register maps with
 ##   name aliases used on 32 bit Avalon and AXI.
 ##
@@ -62,8 +62,8 @@ class HeaderAddrGeneratorWrapper():
 
     # Name of the IP-XACT Memory map which should be used for VHDL package generatio.
     memMap = None
-    
-    # Size of the access bus word. Register bit field offsets are concatenated into 
+
+    # Size of the access bus word. Register bit field offsets are concatenated into
     # word width size instead of simple offset from beginning of register. (E.g. 32 bit  ->
     # bitfields from first four 8-bit register are concatenated into 32 bit values)
     wordWidth = 32
@@ -74,6 +74,9 @@ class HeaderAddrGeneratorWrapper():
     # Output where to write the VHDL package.
     outFile = ""
 
+    # Header file prefix
+    prefix = "ctu_can_fd"
+
     # Use kernel compliant wrapper or not
     use_kern_style = False
 
@@ -81,7 +84,7 @@ class HeaderAddrGeneratorWrapper():
         with open(self.xactSpec) as f:
             name = None
             offset = 0
-            
+
             component = Component()
             component.load(f)
 
@@ -97,7 +100,7 @@ class HeaderAddrGeneratorWrapper():
                     lic_text = load_license(self.licPath)
                     write_license(lic_text, '*', of)
 
-                header_gen.prefix = "ctu_can_fd"
+                header_gen.prefix = self.prefix
                 header_gen.create_addrMap_package(self.headName)
 
                 header_gen.commit_to_file()
