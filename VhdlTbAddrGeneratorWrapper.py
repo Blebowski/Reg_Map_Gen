@@ -1,5 +1,5 @@
-################################################################################                                                     
-## 
+################################################################################
+##
 ## Register map generation tool
 ##
 ## Copyright (C) 2018 Ondrej Ille <ondrej.ille@gmail.com>
@@ -27,7 +27,7 @@
 ###############################################################################
 ##
 ##   Copyright (C) 2017 Ondrej Ille <ondrej.ille@gmail.com>
-##   
+##
 ##   Class for generation of VHDL Tesbench package from IP-XACT specification.
 ##   List of registers with reset values, register types, indication of imple-
 ##   mented/not-implemented bits.
@@ -59,8 +59,8 @@ class VhdlTbAddrGeneratorWrapper():
 
     # Name of the IP-XACT Memory map which should be used for VHDL package generation.
     memMap = None
-    
-    # Size of the access bus word. Register bit field offsets are concatenated into 
+
+    # Size of the access bus word. Register bit field offsets are concatenated into
     # word width size instead of simple offset from beginning of register. (E.g. 32 bit  ->
     # bitfields from first four 8-bit register are concatenated into 32 bit values)
     wordWidth = 32
@@ -71,28 +71,45 @@ class VhdlTbAddrGeneratorWrapper():
     # Output where to write the VHDL package.
     outFile = ""
 
+    # Library and package defining the TB-side register-descriptor types
+    # (t_memory_reg, t_reg_type) used by the generated register list. Must be
+    # set explicitly (no default) by the IP repository specific
+    # update_reg_map.py.
+    defsLibrary = ""
+    defsPackage = ""
+
+    # Library and package of the generated RTL register map, providing the
+    # register address constants referenced by the register list. Must be
+    # set explicitly (no default) by the IP repository specific
+    # update_reg_map.py.
+    regMapLibrary = ""
+    regMapPackage = ""
 
     def do_update(self):
 
 	    with open(self.xactSpec) as spec_file:
 		    name = None
 		    offset = 0
-		    
+
             # Load IP-Xact component
 		    component = Component()
 		    component.load(spec_file)
-			    
+
 		    with open_output(self.outFile) as of:
-			    
+
 			    vhdlGen = VhdlTbAddrGenerator(component, self.memMap, self.wordWidth)
 			    vhdlGen.set_of(of)
-			    
+			    vhdlGen.defsLibrary = self.defsLibrary
+			    vhdlGen.defsPackage = self.defsPackage
+			    vhdlGen.regMapLibrary = self.regMapLibrary
+			    vhdlGen.regMapPackage = self.regMapPackage
+
 			    if (self.licPath != ""):
 				    lic_text = load_license(self.licPath)
 				    write_license(lic_text, '-', of)
-			    
+
 			    vhdlGen.create_addrMap_package(self.packName)
-			    
+
 			    vhdlGen.commit_to_file()
 
     if __name__ == '__main__':
