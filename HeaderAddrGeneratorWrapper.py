@@ -75,7 +75,7 @@ class HeaderAddrGeneratorWrapper():
     outFile = ""
 
     # Header file prefix
-    prefix = "ctu_can_fd"
+    prefix = ""
 
     # Use kernel compliant wrapper or not
     use_kern_style = False
