@@ -77,6 +77,9 @@ class HeaderAddrGeneratorWrapper():
     # Header file prefix
     prefix = ""
 
+    # Kernel register name prefix
+    kernel_reg_name_prefix = ""
+
     # Use kernel compliant wrapper or not
     use_kern_style = False
 
@@ -92,6 +95,7 @@ class HeaderAddrGeneratorWrapper():
                 header_gen = None
                 if self.use_kern_style:
                     header_gen = KernHeaderAddrGenerator(component, self.memMap, self.wordWidth)
+                    header_gen.reg_name_prefix = self.kernel_reg_name_prefix
                 else:
                     header_gen = HeaderAddrGenerator(component, self.memMap, self.wordWidth)
                 header_gen.set_of(of)

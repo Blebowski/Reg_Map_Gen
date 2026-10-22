@@ -1,5 +1,5 @@
-################################################################################                                                     
-## 
+################################################################################
+##
 ## Register map generation tool
 ##
 ## Copyright (C) 2018 Ondrej Ille <ondrej.ille@gmail.com>
@@ -27,7 +27,7 @@
 ###############################################################################
 ##
 ##   Address map generator to C header file (Linux kernel style)
-## 
+##
 ##	Revision history:
 ##		29.05.2021	First implementation
 ##
@@ -44,6 +44,7 @@ class KernHeaderAddrGenerator(IpXactAddrGenerator):
 
 	headerGen = None
 	prefix	= ""
+	reg_name_prefix = ""
 
 	def __init__(self, pyXactComp, memMap, wrdWidthBit):
 		super().__init__(pyXactComp, memMap, wrdWidthBit)
@@ -85,7 +86,7 @@ class KernHeaderAddrGenerator(IpXactAddrGenerator):
 
 		for block in self.memMap.addressBlock:
 			for reg in sorted(block.register, key=lambda a: a.addressOffset):
-				decls.append(LanDeclaration(("CTUCANFD_" + reg.name).upper(),
+				decls.append(LanDeclaration((self.reg_name_prefix.upper() + "_" + reg.name).upper(),
 											value=reg.addressOffset + block.baseAddress,
 											intType="enum"))
 
@@ -149,7 +150,7 @@ class KernHeaderAddrGenerator(IpXactAddrGenerator):
 				self.write_reg_group(reg_group)
 
 			return
-	
+
 	def create_addrMap_package(self, name):
 		"""
 		Create C header file package for "memMap" IP-XACT memory block.
