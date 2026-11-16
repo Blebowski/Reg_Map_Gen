@@ -270,11 +270,11 @@ class LyxGenerator(BaseGenerator):
 
 		if (ref == "label"):
 			labelStr = "{"+"{}".format(labelText)+"}"
-			self.wr_line("{}{}".format(ref, labelStr))
+			self.wr_line("{}{}\n".format(ref, labelStr))
 
 		if (ref == "hyperref"):
 			refString = "{" + self.replace_reserved_sign(labelText) + "}"
-			self.wr_line("{}[{}]{}".format(ref, labelText, refString))
+			self.wr_line("{}[{}]{}\n".format(ref, labelText, refString))
 
 		self.commit_append_line(2)
 
@@ -321,10 +321,10 @@ class LyxGenerator(BaseGenerator):
 		if (label == "hyperref"):
 			self.insert_ref(text, label)
 		elif (label != None):
-			self.wr_line(text)
+			self.wr_line(text + "\n")
 			self.insert_ref(text, label)
 		else:
-			self.wr_line(text)
+			self.wr_line(text + "\n")
 
 		if (color != None):
 			self.insert_color(color)
