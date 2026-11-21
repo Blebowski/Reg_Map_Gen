@@ -179,8 +179,14 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		"""
 		signDict["r_data_comb"] = LanDeclaration("r_data_comb", value = None)
 		signDict["r_data_comb"].type = "std_logic"
-		signDict["r_data_comb"].bitWidth = self.wrdWidthByte * 8;
+		signDict["r_data_comb"].bitWidth = self.wrdWidthByte * 8
 		signDict["r_data_comb"].specifier = "signal"
+
+		signDict["r_data_sel"] = LanDeclaration("r_data_sel", value = None)
+		signDict["r_data_sel"].type = "std_logic"
+		[high_addr_bit,low_addr_bit] = self.calc_addr_indices(block)
+		signDict["r_data_sel"].bitWidth = high_addr_bit - low_addr_bit + 1
+		signDict["r_data_sel"].specifier = "signal"
 
 
 	def create_read_data_mask_n_decl(self, block, signDict):
@@ -682,7 +688,10 @@ class VhdlRegMapGenerator(IpXactAddrGenerator):
 		self.hdlGen.write_comment("Read data multiplexor", gap = 4)
 
 		[high_addr_bit,low_addr_bit] = self.calc_addr_indices(block)
-		self.hdlGen.wr_line(f"    with address({high_addr_bit} downto {low_addr_bit}) select r_data_comb <=")
+		self.hdlGen.create_signal_connection("r_data_sel", 
+						f"address({high_addr_bit} downto {low_addr_bit})", gap = 4)
+	
+		self.hdlGen.wr_line(f"    with r_data_sel select r_data_comb <=")
 
 		for addr in range(low_addr, high_addr, self.wrdWidthByte):
 
